@@ -1,0 +1,60 @@
+export type Post = {
+  id: number;
+  title: string;
+  content: string;
+  author: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PostCreateInput = {
+  title: string;
+  content: string;
+  author: string;
+};
+
+export type PostUpdateInput = {
+  title: string;
+  content: string;
+};
+
+export type FieldError = {
+  field: string;
+  message: string;
+};
+
+export type ApiErrorBody = {
+  timestamp?: string;
+  status?: number;
+  error?: string;
+  message?: string;
+  path?: string;
+  fieldErrors?: FieldError[];
+};
+
+export type GameScore = {
+  id: number;
+  playerName: string;
+  finalRound: number;
+  rank: number;
+  createdAt: string;
+};
+
+export type GameScoreCreateInput = {
+  finalRound: number;
+};
+
+export type LoginInput = {
+  loginId: string;
+  password: string;
+};
+
+export type LoginResponse = {
+  accessToken: string;
+  loginId: string;
+};
+
+export type Me = {
+  id: number;
+  loginId: string;
+};
