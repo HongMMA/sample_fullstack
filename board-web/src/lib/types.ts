@@ -130,6 +130,14 @@ export type GachaPullResult = {
   duplicate: boolean;
 };
 
+export type GachaRankingEntry = {
+  rank: number;
+  loginId: string;
+  score: number;
+  rarityCounts: Record<string, number>;
+  totalCards: number;
+};
+
 export type GachaTheme = {
   themeCode: string;
   displayName: string;

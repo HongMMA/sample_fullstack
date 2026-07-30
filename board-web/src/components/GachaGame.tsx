@@ -128,6 +128,7 @@ export function GachaGame() {
         left: 8 + ((index * 17) % 84),
         delay: index * 0.05,
         duration: 0.7 + (index % 5) * 0.12,
+        size: 8,
       })),
     []
   );
@@ -594,8 +595,8 @@ export function GachaGame() {
                 }`}
                 style={{
                   left: `${spark.left}%`,
-                  width: "size" in spark ? spark.size : 8,
-                  height: "size" in spark ? spark.size : 8,
+                  width: spark.size,
+                  height: spark.size,
                   animationDelay: `${spark.delay}s`,
                   animationDuration: `${spark.duration}s`,
                 }}
