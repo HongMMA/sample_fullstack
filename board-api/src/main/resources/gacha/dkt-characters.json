@@ -3,5 +3,7 @@
   { "serialNo": 2, "name": "셜록", "artKey": "sherlock" },
   { "serialNo": 3, "name": "데릭", "artKey": "derek" },
   { "serialNo": 4, "name": "베어", "artKey": "bear" },
-  { "serialNo": 5, "name": "윌리", "artKey": "willie" }
+  { "serialNo": 5, "name": "윌리", "artKey": "willie" },
+  { "serialNo": 6, "name": "데릭(Adult)", "artKey": "derek-adult" },
+  { "serialNo": 7, "name": "데릭(Cute)", "artKey": "derek-cute" }
 ]
