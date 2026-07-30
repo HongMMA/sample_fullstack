@@ -3,6 +3,7 @@ package com.example.board.controller;
 import com.example.board.dto.PostCreateRequest;
 import com.example.board.dto.PostResponse;
 import com.example.board.dto.PostUpdateRequest;
+import com.example.board.service.AuthService;
 import com.example.board.service.PostService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,11 +26,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class PostController {
 
     private final PostService postService;
+    private final AuthService authService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public PostResponse create(@Valid @RequestBody PostCreateRequest request) {
-        return postService.create(request);
+    public PostResponse create(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @Valid @RequestBody PostCreateRequest request
+    ) {
+        return postService.create(authService.authenticate(authorizationHeader), request);
     }
 
     @GetMapping
@@ -43,15 +49,19 @@ public class PostController {
 
     @PutMapping("/{id}")
     public PostResponse update(
+            @RequestHeader("Authorization") String authorizationHeader,
             @PathVariable Long id,
             @Valid @RequestBody PostUpdateRequest request
     ) {
-        return postService.update(id, request);
+        return postService.update(authService.authenticate(authorizationHeader), id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        postService.delete(id);
+    public void delete(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable Long id
+    ) {
+        postService.delete(authService.authenticate(authorizationHeader), id);
     }
 }

@@ -3,6 +3,7 @@ package com.example.board.controller;
 import com.example.board.dto.LoginRequest;
 import com.example.board.dto.LoginResponse;
 import com.example.board.dto.MeResponse;
+import com.example.board.dto.SignupRequest;
 import com.example.board.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +23,22 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @PostMapping("/signup")
+    @ResponseStatus(HttpStatus.CREATED)
+    public LoginResponse signup(@Valid @RequestBody SignupRequest request) {
+        return authService.signup(request);
+    }
+
     @PostMapping("/login")
     @ResponseStatus(HttpStatus.CREATED)
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/guest")
+    @ResponseStatus(HttpStatus.CREATED)
+    public LoginResponse guest() {
+        return authService.loginAsGuest();
     }
 
     @GetMapping("/me")

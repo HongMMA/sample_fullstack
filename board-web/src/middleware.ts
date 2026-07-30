@@ -1,8 +1,16 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+const PUBLIC_PATHS = new Set(["/login", "/signup"]);
+
 export function middleware(request: NextRequest) {
-  if (!request.nextUrl.pathname.startsWith("/game")) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  if (PUBLIC_PATHS.has(pathname)) {
     return NextResponse.next();
   }
 
@@ -12,10 +20,10 @@ export function middleware(request: NextRequest) {
   }
 
   const loginUrl = new URL("/login", request.url);
-  loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+  loginUrl.searchParams.set("redirect", pathname);
   return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
-  matcher: ["/game/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

@@ -13,7 +13,7 @@ export function PostList({ posts }: PostListProps) {
         <p className="font-[family-name:var(--font-display)] text-2xl text-ink">아직 글이 없습니다</p>
         <p className="mt-3 text-muted">첫 게시글을 작성해 보세요.</p>
         <Link
-          href="/posts/new"
+          href="/board/new"
           className="mt-8 inline-flex rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white"
         >
           글쓰기
@@ -27,7 +27,7 @@ export function PostList({ posts }: PostListProps) {
       {posts.map((post, index) => (
         <li key={post.id} className={index === 0 ? "" : "border-t border-line"}>
           <Link
-            href={`/posts/${post.id}`}
+            href={`/board/${post.id}`}
             className="group block px-6 py-5 transition hover:bg-accent-soft/40 md:px-8"
           >
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

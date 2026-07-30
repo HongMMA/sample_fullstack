@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState, useTransition } from "react";
 import { ApiError, createPost, updatePost } from "@/lib/api";
+import { getAccessToken } from "@/lib/auth";
 import type { Post } from "@/lib/types";
 
 type Mode = "create" | "edit";
@@ -15,7 +16,6 @@ type PostFormProps = {
 type FormState = {
   title: string;
   content: string;
-  author: string;
 };
 
 export function PostForm({ mode, post }: PostFormProps) {
@@ -26,7 +26,6 @@ export function PostForm({ mode, post }: PostFormProps) {
   const [form, setForm] = useState<FormState>({
     title: post?.title ?? "",
     content: post?.content ?? "",
-    author: post?.author ?? "",
   });
 
   function onChange(field: keyof FormState, value: string) {
@@ -38,11 +37,17 @@ export function PostForm({ mode, post }: PostFormProps) {
     setError(null);
     setFieldErrors({});
 
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      router.replace("/login?redirect=/board");
+      return;
+    }
+
     startTransition(async () => {
       try {
         if (mode === "create") {
-          const created = await createPost(form);
-          router.push(`/posts/${created.id}`);
+          const created = await createPost(form, accessToken);
+          router.push(`/board/${created.id}`);
           router.refresh();
           return;
         }
@@ -51,11 +56,15 @@ export function PostForm({ mode, post }: PostFormProps) {
           throw new Error("수정할 게시글이 없습니다.");
         }
 
-        await updatePost(post.id, {
-          title: form.title,
-          content: form.content,
-        });
-        router.push(`/posts/${post.id}`);
+        await updatePost(
+          post.id,
+          {
+            title: form.title,
+            content: form.content,
+          },
+          accessToken
+        );
+        router.push(`/board/${post.id}`);
         router.refresh();
       } catch (err) {
         if (err instanceof ApiError) {
@@ -72,21 +81,6 @@ export function PostForm({ mode, post }: PostFormProps) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-6 rounded-3xl border border-line bg-bg-elevated p-6 shadow-[var(--shadow)] md:p-8">
-      {mode === "create" && (
-        <label className="block">
-          <span className="mb-2 block text-sm text-muted">작성자</span>
-          <input
-            value={form.author}
-            onChange={(e) => onChange("author", e.target.value)}
-            className="w-full rounded-2xl border border-line bg-white px-4 py-3 outline-none transition focus:border-accent"
-            placeholder="이름을 입력하세요"
-            maxLength={50}
-            required
-          />
-          {fieldErrors.author && <p className="mt-2 text-sm text-danger">{fieldErrors.author}</p>}
-        </label>
-      )}
-
       <label className="block">
         <span className="mb-2 block text-sm text-muted">제목</span>
         <input

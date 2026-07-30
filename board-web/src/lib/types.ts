@@ -10,7 +10,6 @@ export type Post = {
 export type PostCreateInput = {
   title: string;
   content: string;
-  author: string;
 };
 
 export type PostUpdateInput = {
@@ -47,6 +46,12 @@ export type GameScoreCreateInput = {
 export type LoginInput = {
   loginId: string;
   password: string;
+};
+
+export type SignupInput = {
+  loginId: string;
+  password: string;
+  passwordConfirm: string;
 };
 
 export type LoginResponse = {

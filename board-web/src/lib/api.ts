@@ -8,6 +8,7 @@ import type {
   Post,
   PostCreateInput,
   PostUpdateInput,
+  SignupInput,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
@@ -33,6 +34,7 @@ async function request<T>(path: string, init?: RequestOptions): Promise<T> {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
       ...(init?.accessToken ? { Authorization: `Bearer ${init.accessToken}` } : {}),
       ...(init?.headers ?? {}),
     },
@@ -66,23 +68,26 @@ export function getPost(id: number) {
   return request<Post>(`/api/posts/${id}`);
 }
 
-export function createPost(input: PostCreateInput) {
+export function createPost(input: PostCreateInput, accessToken: string) {
   return request<Post>("/api/posts", {
     method: "POST",
     body: JSON.stringify(input),
+    accessToken,
   });
 }
 
-export function updatePost(id: number, input: PostUpdateInput) {
+export function updatePost(id: number, input: PostUpdateInput, accessToken: string) {
   return request<Post>(`/api/posts/${id}`, {
     method: "PUT",
     body: JSON.stringify(input),
+    accessToken,
   });
 }
 
-export function deletePost(id: number) {
+export function deletePost(id: number, accessToken: string) {
   return request<void>(`/api/posts/${id}`, {
     method: "DELETE",
+    accessToken,
   });
 }
 
@@ -98,10 +103,23 @@ export function createGameScore(input: GameScoreCreateInput, accessToken: string
   });
 }
 
+export function signup(input: SignupInput) {
+  return request<LoginResponse>("/api/auth/signup", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export function login(input: LoginInput) {
   return request<LoginResponse>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+export function loginAsGuest() {
+  return request<LoginResponse>("/api/auth/guest", {
+    method: "POST",
   });
 }
 

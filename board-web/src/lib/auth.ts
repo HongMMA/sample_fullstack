@@ -32,3 +32,7 @@ export function clearAuthSession() {
   }
   document.cookie = `${COOKIE_NAME}=; path=/; max-age=0; samesite=lax`;
 }
+
+export function isGuestLoginId(loginId: string | null | undefined) {
+  return Boolean(loginId?.startsWith("guest"));
+}

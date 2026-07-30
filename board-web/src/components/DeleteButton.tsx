@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deletePost } from "@/lib/api";
+import { getAccessToken } from "@/lib/auth";
 
 type DeleteButtonProps = {
   postId: number;
@@ -17,11 +18,17 @@ export function DeleteButton({ postId }: DeleteButtonProps) {
     const ok = window.confirm("이 게시글을 삭제할까요?");
     if (!ok) return;
 
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      router.replace("/login?redirect=/board");
+      return;
+    }
+
     setError(null);
     startTransition(async () => {
       try {
-        await deletePost(postId);
-        router.push("/");
+        await deletePost(postId, accessToken);
+        router.push("/board");
         router.refresh();
       } catch {
         setError("삭제에 실패했습니다.");

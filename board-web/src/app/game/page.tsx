@@ -12,7 +12,7 @@ export default function GamePage() {
           </h1>
         </div>
         <Link
-          href="/"
+          href="/board"
           className="inline-flex items-center rounded-full border border-line bg-bg-elevated px-5 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent"
         >
           게시판으로

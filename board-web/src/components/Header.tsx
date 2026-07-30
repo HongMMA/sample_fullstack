@@ -5,12 +5,12 @@ type HeaderProps = {
   actionLabel?: string;
 };
 
-export function Header({ actionHref = "/posts/new", actionLabel = "글쓰기" }: HeaderProps) {
+export function Header({ actionHref = "/board/new", actionLabel = "글쓰기" }: HeaderProps) {
   return (
     <header className="mb-10 flex items-end justify-between gap-6 border-b border-line pb-6">
       <div>
         <p className="mb-2 text-sm tracking-[0.18em] text-muted uppercase">Local Board</p>
-        <Link href="/" className="font-[family-name:var(--font-display)] text-4xl tracking-tight text-ink md:text-5xl">
+        <Link href="/board" className="font-[family-name:var(--font-display)] text-4xl tracking-tight text-ink md:text-5xl">
           게시판
         </Link>
       </div>
@@ -20,6 +20,12 @@ export function Header({ actionHref = "/posts/new", actionLabel = "글쓰기" }:
           className="inline-flex items-center rounded-full border border-line bg-white px-5 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent"
         >
           로그인
+        </Link>
+        <Link
+          href="/signup"
+          className="inline-flex items-center rounded-full border border-line bg-white px-5 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent"
+        >
+          회원가입
         </Link>
         <Link
           href="/game"
