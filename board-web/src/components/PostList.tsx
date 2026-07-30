@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getPostWriteSetting } from "@/lib/api";
-import { getLoginId, isSuperAdmin } from "@/lib/auth";
+import { getLoginId, isGuestLoginId, isSuperAdmin } from "@/lib/auth";
 import type { Post } from "@/lib/types";
 import { formatDateTime } from "@/lib/format";
 
@@ -14,13 +14,17 @@ type PostListProps = {
 export function PostList({ posts }: PostListProps) {
   const [canWrite, setCanWrite] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
-    const admin = isSuperAdmin(getLoginId());
+    const loginId = getLoginId();
+    const admin = isSuperAdmin(loginId);
+    const guest = isGuestLoginId(loginId);
     setIsAdmin(admin);
+    setIsGuest(guest);
     getPostWriteSetting()
-      .then((setting) => setCanWrite(setting.enabled || admin))
-      .catch(() => setCanWrite(true));
+      .then((setting) => setCanWrite(!guest && (setting.enabled || admin)))
+      .catch(() => setCanWrite(!guest));
   }, []);
 
   if (posts.length === 0) {
@@ -28,7 +32,11 @@ export function PostList({ posts }: PostListProps) {
       <div className="rounded-3xl border border-dashed border-line bg-bg-elevated/70 px-8 py-16 text-center">
         <p className="font-[family-name:var(--font-display)] text-2xl text-ink">아직 글이 없습니다</p>
         <p className="mt-3 text-muted">
-          {canWrite ? "첫 게시글을 작성해 보세요." : "현재 글쓰기가 비활성화되어 있습니다."}
+          {isGuest
+            ? "게스트는 글을 작성할 수 없습니다. 로그인 후 이용해 주세요."
+            : canWrite
+              ? "첫 게시글을 작성해 보세요."
+              : "현재 글쓰기가 비활성화되어 있습니다."}
         </p>
         {canWrite && (
           <Link
@@ -63,6 +71,9 @@ export function PostList({ posts }: PostListProps) {
                   )}
                 </div>
                 <p className="mt-1 truncate text-sm text-muted">{post.content}</p>
+                <p className="mt-2 text-xs text-muted">
+                  댓글 {post.commentCount} · 조회 {post.viewCount} · 좋아요 {post.likeCount}
+                </p>
               </div>
               <div className="shrink-0 text-sm text-muted md:text-right">
                 <p>{post.author}</p>

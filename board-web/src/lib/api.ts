@@ -96,6 +96,20 @@ export function updatePostHidden(id: number, hidden: boolean, accessToken: strin
   });
 }
 
+export function incrementPostView(id: number, accessToken: string) {
+  return request<Post>(`/api/posts/${id}/views`, {
+    method: "POST",
+    accessToken,
+  });
+}
+
+export function togglePostLike(id: number, accessToken: string) {
+  return request<Post>(`/api/posts/${id}/likes`, {
+    method: "POST",
+    accessToken,
+  });
+}
+
 export function deletePost(id: number, accessToken: string) {
   return request<void>(`/api/posts/${id}`, {
     method: "DELETE",

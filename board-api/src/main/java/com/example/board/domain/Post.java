@@ -36,6 +36,12 @@ public class Post {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean hidden = false;
 
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private long viewCount = 0;
+
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private long likeCount = 0;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -48,6 +54,8 @@ public class Post {
         this.content = content;
         this.author = author;
         this.hidden = false;
+        this.viewCount = 0;
+        this.likeCount = 0;
     }
 
     public void update(String title, String content) {
@@ -59,6 +67,20 @@ public class Post {
     public void updateHidden(boolean hidden) {
         this.hidden = hidden;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void incrementViewCount() {
+        this.viewCount += 1;
+    }
+
+    public void incrementLikeCount() {
+        this.likeCount += 1;
+    }
+
+    public void decrementLikeCount() {
+        if (this.likeCount > 0) {
+            this.likeCount -= 1;
+        }
     }
 
     @PrePersist

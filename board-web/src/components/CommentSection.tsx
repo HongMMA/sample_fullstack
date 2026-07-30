@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, createComment, deleteComment, updateComment } from "@/lib/api";
@@ -28,6 +29,8 @@ export function CommentSection({ postId, initialComments }: CommentSectionProps)
     setLoginId(getLoginId());
   }, []);
 
+  const canWriteComment = Boolean(loginId) && !isGuestLoginId(loginId);
+
   function refresh() {
     router.refresh();
   }
@@ -35,6 +38,11 @@ export function CommentSection({ postId, initialComments }: CommentSectionProps)
   function onSubmitRoot(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (!canWriteComment) {
+      router.replace(`/login?redirect=/board/${postId}`);
+      return;
+    }
 
     const accessToken = getAccessToken();
     if (!accessToken) {
@@ -69,32 +77,41 @@ export function CommentSection({ postId, initialComments }: CommentSectionProps)
         댓글 {countComments(comments)}
       </h2>
 
-      <form onSubmit={onSubmitRoot} className="mt-6 space-y-3">
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="min-h-24 w-full resize-y rounded-2xl border border-line bg-white px-4 py-3 outline-none transition focus:border-accent"
-          placeholder="댓글을 입력하세요"
-          maxLength={2000}
-          required
-        />
-        {error && (
-          <div className="rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
-            {error}
-          </div>
-        )}
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-60"
-        >
-          {isPending ? "등록 중..." : "댓글 등록"}
-        </button>
-      </form>
+      {canWriteComment ? (
+        <form onSubmit={onSubmitRoot} className="mt-6 space-y-3">
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="min-h-24 w-full resize-y rounded-2xl border border-line bg-white px-4 py-3 outline-none transition focus:border-accent"
+            placeholder="댓글을 입력하세요"
+            maxLength={2000}
+            required
+          />
+          {error && (
+            <div className="rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
+              {error}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={isPending}
+            className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-60"
+          >
+            {isPending ? "등록 중..." : "댓글 등록"}
+          </button>
+        </form>
+      ) : (
+        <p className="mt-6 text-sm text-muted">
+          댓글 작성은 로그인 회원만 가능합니다.{" "}
+          <Link href={`/login?redirect=/board/${postId}`} className="text-accent underline-offset-4 hover:underline">
+            로그인하기
+          </Link>
+        </p>
+      )}
 
       <ul className="mt-8 space-y-4">
         {comments.length === 0 ? (
-          <li className="text-sm text-muted">아직 댓글이 없습니다. 첫 댓글을 남겨 보세요.</li>
+          <li className="text-sm text-muted">아직 댓글이 없습니다.</li>
         ) : (
           comments.map((comment) => (
             <CommentItem
@@ -102,6 +119,7 @@ export function CommentSection({ postId, initialComments }: CommentSectionProps)
               comment={comment}
               postId={postId}
               loginId={loginId}
+              canWriteComment={canWriteComment}
               depth={0}
               onChanged={refresh}
             />
@@ -116,11 +134,12 @@ type CommentItemProps = {
   comment: Comment;
   postId: number;
   loginId: string | null;
+  canWriteComment: boolean;
   depth: number;
   onChanged: () => void;
 };
 
-function CommentItem({ comment, postId, loginId, depth, onChanged }: CommentItemProps) {
+function CommentItem({ comment, postId, loginId, canWriteComment, depth, onChanged }: CommentItemProps) {
   const router = useRouter();
   const [isReplying, setIsReplying] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -265,16 +284,18 @@ function CommentItem({ comment, postId, loginId, depth, onChanged }: CommentItem
 
         {!isEditing && (
           <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setIsReplying((prev) => !prev);
-                setError(null);
-              }}
-              className="rounded-full border border-line bg-white px-3 py-1 text-xs text-ink transition hover:bg-accent-soft/50"
-            >
-              답글
-            </button>
+            {canWriteComment && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsReplying((prev) => !prev);
+                  setError(null);
+                }}
+                className="rounded-full border border-line bg-white px-3 py-1 text-xs text-ink transition hover:bg-accent-soft/50"
+              >
+                답글
+              </button>
+            )}
             {canManage && (
               <>
                 <button
@@ -302,7 +323,7 @@ function CommentItem({ comment, postId, loginId, depth, onChanged }: CommentItem
           </div>
         )}
 
-        {isReplying && (
+        {isReplying && canWriteComment && (
           <form onSubmit={onReply} className="mt-3 space-y-3">
             <textarea
               value={replyContent}
@@ -350,6 +371,7 @@ function CommentItem({ comment, postId, loginId, depth, onChanged }: CommentItem
               comment={reply}
               postId={postId}
               loginId={loginId}
+              canWriteComment={canWriteComment}
               depth={depth + 1}
               onChanged={onChanged}
             />

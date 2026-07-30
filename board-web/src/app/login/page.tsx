@@ -127,7 +127,7 @@ function LoginForm() {
           게스트로 입장
         </button>
         <p className="mt-3 text-center text-xs text-muted">
-          게스트는 `guest` + 난수 이름으로 저장되며, 작성한 글은 수정할 수 없습니다.
+          게스트는 게시글 열람만 가능하며, 글·댓글 작성은 로그인 회원만 할 수 있습니다.
         </p>
       </section>
     </main>

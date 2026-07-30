@@ -5,13 +5,21 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { PostForm } from "@/components/PostForm";
 import { getPostWriteSetting } from "@/lib/api";
-import { getLoginId, isSuperAdmin } from "@/lib/auth";
+import { getLoginId, isGuestLoginId, isSuperAdmin } from "@/lib/auth";
 
 export default function NewPostPage() {
   const [canWrite, setCanWrite] = useState<boolean | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
-    const admin = isSuperAdmin(getLoginId());
+    const loginId = getLoginId();
+    const guest = isGuestLoginId(loginId);
+    const admin = isSuperAdmin(loginId);
+    setIsGuest(guest);
+    if (guest) {
+      setCanWrite(false);
+      return;
+    }
     getPostWriteSetting()
       .then((setting) => setCanWrite(setting.enabled || admin))
       .catch(() => setCanWrite(true));
@@ -30,7 +38,9 @@ export default function NewPostPage() {
         <PostForm mode="create" />
       ) : (
         <div className="rounded-3xl border border-danger/20 bg-danger-soft px-6 py-5 text-danger">
-          현재 글쓰기가 비활성화되어 있습니다.
+          {isGuest
+            ? "게스트는 게시글을 작성할 수 없습니다. 로그인 회원만 글쓰기가 가능합니다."
+            : "현재 글쓰기가 비활성화되어 있습니다."}
         </div>
       )}
       <div className="mt-6">

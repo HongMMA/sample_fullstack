@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getPostWriteSetting } from "@/lib/api";
-import { getLoginId, isSuperAdmin } from "@/lib/auth";
+import { getLoginId, isGuestLoginId, isSuperAdmin } from "@/lib/auth";
 
 type HeaderProps = {
   actionHref?: string;
@@ -22,7 +22,8 @@ export function Header({ actionHref = "/board/new", actionLabel = "글쓰기" }:
       .catch(() => setPostWriteEnabled(true));
   }, []);
 
-  const canWrite = postWriteEnabled || isSuperAdmin(loginId);
+  const isGuest = isGuestLoginId(loginId);
+  const canWrite = !isGuest && (postWriteEnabled || isSuperAdmin(loginId));
 
   return (
     <header className="mb-10 flex items-end justify-between gap-6 border-b border-line pb-6">
@@ -61,7 +62,7 @@ export function Header({ actionHref = "/board/new", actionLabel = "글쓰기" }:
         </Link>
         {isWriteAction && !canWrite ? (
           <span className="inline-flex items-center rounded-full border border-line bg-white px-5 py-2.5 text-sm font-medium text-muted">
-            글쓰기 중지됨
+            {isGuest ? "회원만 글쓰기" : "글쓰기 중지됨"}
           </span>
         ) : (
           <Link

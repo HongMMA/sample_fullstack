@@ -4,6 +4,10 @@ export type Post = {
   content: string;
   author: string;
   hidden: boolean;
+  commentCount: number;
+  viewCount: number;
+  likeCount: number;
+  likedByMe: boolean;
   createdAt: string;
   updatedAt: string;
 };

@@ -1,5 +1,6 @@
 package com.example.board.controller;
 
+import com.example.board.domain.UserAccount;
 import com.example.board.dto.PostCreateRequest;
 import com.example.board.dto.PostHiddenUpdateRequest;
 import com.example.board.dto.PostResponse;
@@ -42,7 +43,10 @@ public class PostController {
     public List<PostResponse> findAll(
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader
     ) {
-        return postService.findAll(authService.isSuperAdmin(authorizationHeader));
+        return postService.findAll(
+                authService.isSuperAdmin(authorizationHeader),
+                authService.findLoginIdOrNull(authorizationHeader)
+        );
     }
 
     @GetMapping("/{id}")
@@ -50,7 +54,31 @@ public class PostController {
             @PathVariable Long id,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader
     ) {
-        return postService.findById(id, authService.isSuperAdmin(authorizationHeader));
+        return postService.findById(
+                id,
+                authService.isSuperAdmin(authorizationHeader),
+                authService.findLoginIdOrNull(authorizationHeader)
+        );
+    }
+
+    @PostMapping("/{id}/views")
+    public PostResponse incrementView(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable Long id
+    ) {
+        UserAccount viewer = authService.authenticate(authorizationHeader);
+        boolean includeHidden = AuthService.SUPERADMIN_LOGIN_ID.equals(viewer.getLoginId());
+        return postService.incrementView(viewer, id, includeHidden);
+    }
+
+    @PostMapping("/{id}/likes")
+    public PostResponse toggleLike(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable Long id
+    ) {
+        UserAccount userAccount = authService.authenticate(authorizationHeader);
+        boolean includeHidden = AuthService.SUPERADMIN_LOGIN_ID.equals(userAccount.getLoginId());
+        return postService.toggleLike(userAccount, id, includeHidden);
     }
 
     @PutMapping("/{id}")
@@ -68,8 +96,8 @@ public class PostController {
             @PathVariable Long id,
             @Valid @RequestBody PostHiddenUpdateRequest request
     ) {
-        authService.requireSuperAdmin(authorizationHeader);
-        return postService.updateHidden(id, request.hidden());
+        UserAccount admin = authService.requireSuperAdmin(authorizationHeader);
+        return postService.updateHidden(id, request.hidden(), admin.getLoginId());
     }
 
     @DeleteMapping("/{id}")

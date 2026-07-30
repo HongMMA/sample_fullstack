@@ -133,6 +133,17 @@ public class AuthService {
         }
     }
 
+    public String findLoginIdOrNull(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+            return null;
+        }
+        try {
+            return authenticate(authorizationHeader).getLoginId();
+        } catch (UnauthorizedException ex) {
+            return null;
+        }
+    }
+
     private String extractBearerToken(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
             throw new UnauthorizedException();

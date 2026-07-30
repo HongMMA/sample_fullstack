@@ -39,6 +39,10 @@ public class CommentService {
             CommentCreateRequest request,
             boolean includeHidden
     ) {
+        if (userAccount.getLoginId().startsWith(GUEST_PREFIX)) {
+            throw new ForbiddenException("게스트는 댓글을 작성할 수 없습니다. 로그인 후 이용해 주세요.");
+        }
+
         Post post = postService.getVisiblePostOrThrow(postId, includeHidden);
 
         Comment parent = null;
