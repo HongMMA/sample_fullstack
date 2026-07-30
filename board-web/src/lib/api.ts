@@ -37,6 +37,7 @@ async function request<T>(path: string, init?: RequestOptions): Promise<T> {
       ...(init?.headers ?? {}),
     },
     cache: "no-store",
+    signal: init?.signal ?? AbortSignal.timeout(5000),
   });
 
   if (response.status === 204) {

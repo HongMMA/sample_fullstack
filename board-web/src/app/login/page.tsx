@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { Suspense, useState, type FormEvent } from "react";
 import { login } from "@/lib/api";
 import { setAuthSession } from "@/lib/auth";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") ?? "/game";
@@ -40,7 +40,7 @@ export default function LoginPage() {
           로그인
         </h1>
         <p className="mt-3 text-sm text-muted">
-          `/game` 페이지는 로그인 후 접근할 수 있습니다. 데모 계정은 `player1 / 1234`, `player2 / 1234` 입니다.
+          `/game` 페이지는 로그인 후 접근할 수 있습니다.<br />데모 계정은 `player1 / 1234`, `player2 / 1234` 입니다.
         </p>
       </header>
 
@@ -95,5 +95,13 @@ export default function LoginPage() {
         </form>
       </section>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main className="mx-auto max-w-xl p-6 text-muted">로그인 페이지 로딩 중...</main>}>
+      <LoginForm />
+    </Suspense>
   );
 }
