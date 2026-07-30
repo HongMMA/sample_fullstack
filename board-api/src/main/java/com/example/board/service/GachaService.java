@@ -7,6 +7,7 @@ import com.example.board.domain.GachaRarity;
 import com.example.board.domain.UserAccount;
 import com.example.board.dto.GachaCardResponse;
 import com.example.board.dto.GachaProfileResponse;
+import com.example.board.dto.GachaPullItemResponse;
 import com.example.board.dto.GachaPullResponse;
 import com.example.board.dto.GachaRankingEntryResponse;
 import com.example.board.dto.GachaThemeResponse;
@@ -34,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class GachaService {
 
     private static final int PULL_COST = 1;
+    private static final int MAX_PULL_COUNT = 30;
     private static final int RANKING_LIMIT = 10;
     private static final long RANK_BASE = 1_000L;
 
@@ -76,32 +78,58 @@ public class GachaService {
     }
 
     @Transactional
-    public GachaPullResponse pull(UserAccount userAccount, GachaRarity forcedRarity) {
+    public GachaPullResponse pull(UserAccount userAccount, GachaRarity forcedRarity, int count) {
+        if (count < 1 || count > MAX_PULL_COUNT) {
+            throw new BadRequestException("한 번에 1~" + MAX_PULL_COUNT + "장까지 뽑을 수 있습니다.");
+        }
+        if (forcedRarity != null && count != 1) {
+            throw new BadRequestException("등급 지정 뽑기는 1장만 가능합니다.");
+        }
+
         GachaPlayer player = getOrCreatePlayer(userAccount);
-        if (player.getPoints() < PULL_COST) {
-            throw new BadRequestException("포인트가 부족합니다. 뽑기에는 1포인트가 필요합니다.");
+        int totalCost = PULL_COST * count;
+        if (player.getPoints() < totalCost) {
+            throw new BadRequestException(
+                    "포인트가 부족합니다. " + count + "장 뽑기에는 " + totalCost + "포인트가 필요합니다."
+            );
         }
 
-        GachaRarity rarity = forcedRarity != null ? forcedRarity : rollRarity();
         String activeTheme = gachaThemeRegistry.getActivePack().themeCode();
-        List<GachaCard> pool = gachaCardRepository.findByThemeCodeAndRarity(activeTheme, rarity);
-        if (pool.isEmpty()) {
-            throw new BadRequestException("해당 등급의 카드 풀이 비어 있습니다.");
+        List<GachaPullItemResponse> results = new ArrayList<>(count);
+        GachaCardResponse highlightCard = null;
+        int highlightTier = -1;
+
+        for (int i = 0; i < count; i++) {
+            GachaRarity rarity = forcedRarity != null ? forcedRarity : rollRarity();
+            List<GachaCard> pool = gachaCardRepository.findByThemeCodeAndRarity(activeTheme, rarity);
+            if (pool.isEmpty()) {
+                throw new BadRequestException("해당 등급의 카드 풀이 비어 있습니다.");
+            }
+
+            GachaCard pulled = pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
+            boolean duplicate = gachaInventoryRepository
+                    .findByPlayerIdAndCardId(player.getId(), pulled.getId())
+                    .isPresent();
+            addCardToInventory(player, pulled);
+
+            GachaCardResponse cardResponse = toCardResponse(pulled, 1);
+            results.add(new GachaPullItemResponse(cardResponse, duplicate));
+
+            int tier = pulled.getRarity().getTier();
+            if (tier > highlightTier) {
+                highlightTier = tier;
+                highlightCard = cardResponse;
+            }
         }
 
-        GachaCard pulled = pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
-        boolean duplicate = gachaInventoryRepository
-                .findByPlayerIdAndCardId(player.getId(), pulled.getId())
-                .isPresent();
+        player.spendPoint(totalCost);
 
-        player.spendPoint(PULL_COST);
-        addCardToInventory(player, pulled);
+        results.sort(Comparator
+                .comparingInt((GachaPullItemResponse item) -> item.card().rarity().getTier())
+                .reversed()
+                .thenComparing(item -> item.card().name()));
 
-        return new GachaPullResponse(
-                toCardResponse(pulled, 1),
-                player.getPoints(),
-                duplicate
-        );
+        return new GachaPullResponse(highlightCard, results, player.getPoints(), count);
     }
 
     public List<GachaRankingEntryResponse> getRanking() {

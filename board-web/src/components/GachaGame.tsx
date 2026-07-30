@@ -19,6 +19,7 @@ const RARITY_ORDER: GachaRarity[] = ["GOAT", "LEGEND", "UNIQUE", "RARE", "MAGIC"
 type PullPhase = "idle" | "spin" | "drop" | "burst" | "reveal";
 
 const SPIN_CARD_COUNT = 8;
+const MULTI_PULL_COUNT = 30;
 
 const RARITY_STYLE: Record<
   GachaRarity,
@@ -211,13 +212,13 @@ export function GachaGame() {
     );
   }
 
-  function onPull() {
+  function onPull(count = 1) {
     const accessToken = getAccessToken();
     if (!accessToken) {
       router.replace("/login?redirect=/gacha");
       return;
     }
-    if (!profile || profile.points < 1 || busy) {
+    if (!profile || profile.points < count || busy) {
       return;
     }
 
@@ -228,15 +229,15 @@ export function GachaGame() {
     startTransition(async () => {
       try {
         await wait(1300);
-        const result = await pullGacha(
-          accessToken,
-          selectedRarity === "RANDOM" ? null : selectedRarity
-        );
+        const result = await pullGacha(accessToken, {
+          rarity: count === 1 && selectedRarity !== "RANDOM" ? selectedRarity : null,
+          count,
+        });
         setLastPull(result);
         setPhase("drop");
         await wait(850);
         setPhase("burst");
-        const rarity = result.pulledCard.rarity;
+        const rarity = result.highlightCard.rarity;
         await wait(rarity === "GOAT" ? 1500 : rarity === "LEGEND" ? 1250 : 800);
         setPhase("reveal");
         await reload(accessToken);
@@ -253,17 +254,21 @@ export function GachaGame() {
 
   function closeReveal() {
     setPhase("idle");
+    setLastPull(null);
   }
 
   if (!profile) {
     return <p className="text-sm text-muted">가챠 금고를 여는 중...</p>;
   }
 
-  const revealStyle = lastPull ? RARITY_STYLE[lastPull.pulledCard.rarity] : null;
-  const isEpicReveal =
-    lastPull?.pulledCard.rarity === "LEGEND" || lastPull?.pulledCard.rarity === "GOAT";
-  const isGoatReveal = lastPull?.pulledCard.rarity === "GOAT";
-  const isLegendReveal = lastPull?.pulledCard.rarity === "LEGEND";
+  const highlight = lastPull?.highlightCard ?? null;
+  const revealStyle = highlight ? RARITY_STYLE[highlight.rarity] : null;
+  const isEpicReveal = highlight?.rarity === "LEGEND" || highlight?.rarity === "GOAT";
+  const isGoatReveal = highlight?.rarity === "GOAT";
+  const isLegendReveal = highlight?.rarity === "LEGEND";
+  const isMultiPull = (lastPull?.pullCount ?? 0) > 1;
+  const highlightDuplicate =
+    lastPull?.results.find((item) => item.card.id === highlight?.id)?.duplicate ?? false;
 
   return (
     <div className="space-y-10">
@@ -368,27 +373,29 @@ export function GachaGame() {
                 </div>
               </div>
 
-              {(phase === "drop" || phase === "burst") && lastPull && (
+              {(phase === "drop" || phase === "burst") && highlight && (
                 <div className="absolute inset-0 flex items-center justify-center [perspective:900px]">
                   <div
                     className={`h-44 w-32 overflow-hidden rounded-[1.2rem] border-2 ${
-                      RARITY_STYLE[lastPull.pulledCard.rarity].frame
-                    } ${RARITY_STYLE[lastPull.pulledCard.rarity].glow} animate-[gacha-card-settle_0.85s_cubic-bezier(0.2,0.85,0.2,1)_forwards]`}
+                      RARITY_STYLE[highlight.rarity].frame
+                    } ${RARITY_STYLE[highlight.rarity].glow} animate-[gacha-card-settle_0.85s_cubic-bezier(0.2,0.85,0.2,1)_forwards]`}
                   >
                     <div className="flex h-full flex-col items-center justify-center bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.45),transparent_55%)]">
                       <span
                         className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                          RARITY_STYLE[lastPull.pulledCard.rarity].badge
+                          RARITY_STYLE[highlight.rarity].badge
                         }`}
                       >
-                        {RARITY_STYLE[lastPull.pulledCard.rarity].label}
+                        {RARITY_STYLE[highlight.rarity].label}
                       </span>
                       <div
                         className={`mt-5 h-16 w-16 rounded-full border border-white/50 ${
-                          RARITY_STYLE[lastPull.pulledCard.rarity].marble
+                          RARITY_STYLE[highlight.rarity].marble
                         } animate-[gacha-card-flipglow_0.85s_ease-in-out_infinite]`}
                       />
-                      <p className="mt-4 text-xs text-ink/60">결정 중...</p>
+                      <p className="mt-4 text-xs text-ink/60">
+                        {isMultiPull ? `${MULTI_PULL_COUNT}장 결정 중...` : "결정 중..."}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -400,23 +407,39 @@ export function GachaGame() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={onPull}
-              disabled={busy || profile.points < 1}
-              className="relative overflow-hidden rounded-full bg-accent px-8 py-3 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50"
-            >
-              <span className="relative z-10">
+            <div className="flex w-full flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => onPull(1)}
+                disabled={busy || profile.points < 1}
+                className="relative overflow-hidden rounded-full bg-accent px-8 py-3 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50"
+              >
+                <span className="relative z-10">
+                  {busy
+                    ? phaseLabel(phase)
+                    : profile.points < 1
+                      ? "포인트 부족"
+                      : selectedRarity === "RANDOM" || !isAdmin
+                        ? "1장 뽑기"
+                        : `${RARITY_STYLE[selectedRarity].label} 뽑기`}
+                </span>
+                {busy && (
+                  <span className="absolute inset-0 animate-[gacha-button-shine_1.1s_linear_infinite] bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => onPull(MULTI_PULL_COUNT)}
+                disabled={busy || profile.points < MULTI_PULL_COUNT}
+                className="relative overflow-hidden rounded-full border border-accent bg-white px-8 py-3 text-sm font-medium text-accent transition hover:bg-accent-soft disabled:opacity-50"
+              >
                 {busy
-                ? phaseLabel(phase)
-                : profile.points < 1
-                  ? "포인트 부족"
-                  : selectedRarity === "RANDOM"
-                    ? "1포인트로 뽑기"
-                    : `${RARITY_STYLE[selectedRarity].label} 뽑기`}
-              </span>
-              {busy && <span className="absolute inset-0 animate-[gacha-button-shine_1.1s_linear_infinite] bg-gradient-to-r from-transparent via-white/25 to-transparent" />}
-            </button>
+                  ? "뽑는 중..."
+                  : profile.points < MULTI_PULL_COUNT
+                    ? `30장 (${MULTI_PULL_COUNT}P 필요)`
+                    : "30장 한번에 열기"}
+              </button>
+            </div>
 
             {error && (
               <div className="w-full rounded-2xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
@@ -481,9 +504,9 @@ export function GachaGame() {
         )}
       </section>
 
-      {(phase === "burst" || phase === "reveal") && lastPull && revealStyle && (
+      {(phase === "burst" || phase === "reveal") && lastPull && highlight && revealStyle && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+          className={`fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 py-8 ${
             isEpicReveal && phase === "burst"
               ? isGoatReveal
                 ? "animate-[gacha-screen-shake_0.55s_ease-in-out]"
@@ -494,7 +517,7 @@ export function GachaGame() {
           <button
             type="button"
             aria-label="닫기"
-            className={`absolute inset-0 backdrop-blur-sm ${
+            className={`fixed inset-0 backdrop-blur-sm ${
               isGoatReveal
                 ? "bg-slate-950/85"
                 : isLegendReveal
@@ -506,7 +529,7 @@ export function GachaGame() {
 
           {isEpicReveal && (
             <div
-              className={`pointer-events-none absolute inset-0 ${
+              className={`pointer-events-none fixed inset-0 ${
                 phase === "burst"
                   ? isGoatReveal
                     ? "animate-[gacha-flash-gold_0.7s_ease-out_forwards]"
@@ -516,7 +539,7 @@ export function GachaGame() {
             />
           )}
 
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="pointer-events-none fixed inset-0 overflow-hidden">
             <div
               className={`absolute left-1/2 top-1/2 h-[120vmax] w-[120vmax] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r ${revealStyle.burst} ${
                 phase === "burst"
@@ -605,7 +628,9 @@ export function GachaGame() {
           </div>
 
           <div
-            className={`relative z-10 w-full max-w-md rounded-[2rem] border p-6 text-center shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${
+            className={`relative z-10 my-auto w-full rounded-[2rem] border p-6 text-center shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${
+              isMultiPull ? "max-w-5xl" : "max-w-md"
+            } ${
               isGoatReveal
                 ? "border-amber-300/50 bg-gradient-to-b from-amber-950/90 via-slate-950/90 to-black/90"
                 : isLegendReveal
@@ -638,13 +663,15 @@ export function GachaGame() {
                   : revealStyle.title
               }`}
             >
-              {isGoatReveal
-                ? "MYTHIC APPEARANCE"
-                : isLegendReveal
-                  ? "LEGENDARY PULL"
-                  : lastPull.duplicate
-                    ? "Duplicate Pull"
-                    : "New Card"}
+              {isMultiPull
+                ? `${lastPull.pullCount}연차 · BEST`
+                : isGoatReveal
+                  ? "MYTHIC APPEARANCE"
+                  : isLegendReveal
+                    ? "LEGENDARY PULL"
+                    : highlightDuplicate
+                      ? "Duplicate Pull"
+                      : "New Card"}
             </p>
             <h3
               className={`mt-2 font-[family-name:var(--font-display)] text-3xl ${
@@ -663,11 +690,32 @@ export function GachaGame() {
             </h3>
             <div className="mx-auto mt-6 max-w-xs text-left">
               <GachaCardView
-                card={lastPull.pulledCard}
+                card={highlight}
                 featured
                 epicEntrance={isEpicReveal && phase === "reveal"}
               />
             </div>
+
+            {phase === "reveal" && isMultiPull && (
+              <div className="mt-8 text-left">
+                <p className="mb-4 text-center text-sm text-white/70">
+                  뽑힌 카드 {lastPull.results.length}장
+                </p>
+                <div className="grid max-h-[42vh] gap-3 overflow-y-auto pr-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                  {lastPull.results.map((item, index) => (
+                    <div key={`${item.card.id}-${index}`} className="relative">
+                      <GachaCardView card={item.card} />
+                      {item.duplicate && (
+                        <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white/80">
+                          DUP
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <p className="mt-5 text-sm text-white/70">남은 포인트 {lastPull.remainingPoints}</p>
             {phase === "reveal" && (
               <button

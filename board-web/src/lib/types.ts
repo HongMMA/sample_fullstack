@@ -124,10 +124,16 @@ export type GachaProfile = {
   rarityCounts: Record<string, number>;
 };
 
-export type GachaPullResult = {
-  pulledCard: GachaCard;
-  remainingPoints: number;
+export type GachaPullItem = {
+  card: GachaCard;
   duplicate: boolean;
+};
+
+export type GachaPullResult = {
+  highlightCard: GachaCard;
+  results: GachaPullItem[];
+  remainingPoints: number;
+  pullCount: number;
 };
 
 export type GachaRankingEntry = {

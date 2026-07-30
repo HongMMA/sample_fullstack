@@ -11,6 +11,7 @@ import com.example.board.exception.ForbiddenException;
 import com.example.board.service.AppSettingService;
 import com.example.board.service.AuthService;
 import com.example.board.service.GachaService;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,9 +45,10 @@ public class GachaController {
     @PostMapping("/pull")
     public GachaPullResponse pull(
             @RequestHeader("Authorization") String authorizationHeader,
-            @RequestBody(required = false) GachaPullRequest request
+            @Valid @RequestBody(required = false) GachaPullRequest request
     ) {
         UserAccount userAccount = requireGachaPlayer(authorizationHeader);
+        int count = request != null && request.count() != null ? request.count() : 1;
         GachaRarity forcedRarity = null;
         if (request != null && request.rarity() != null) {
             if (!AuthService.SUPERADMIN_LOGIN_ID.equals(userAccount.getLoginId())) {
@@ -54,7 +56,7 @@ public class GachaController {
             }
             forcedRarity = request.rarity();
         }
-        return gachaService.pull(userAccount, forcedRarity);
+        return gachaService.pull(userAccount, forcedRarity, count);
     }
 
     @GetMapping("/ranking")

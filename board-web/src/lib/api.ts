@@ -253,10 +253,20 @@ export function updateAdminGachaPlayerPoints(
   });
 }
 
-export function pullGacha(accessToken: string, rarity?: GachaRarity | null) {
+export function pullGacha(
+  accessToken: string,
+  options?: { rarity?: GachaRarity | null; count?: number }
+) {
+  const body: { rarity?: GachaRarity; count?: number } = {};
+  if (options?.rarity) {
+    body.rarity = options.rarity;
+  }
+  if (options?.count && options.count > 1) {
+    body.count = options.count;
+  }
   return request<GachaPullResult>("/api/gacha/pull", {
     method: "POST",
-    body: JSON.stringify(rarity ? { rarity } : {}),
+    body: JSON.stringify(body),
     accessToken,
   });
 }

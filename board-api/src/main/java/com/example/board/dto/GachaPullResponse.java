@@ -1,8 +1,11 @@
 package com.example.board.dto;
 
+import java.util.List;
+
 public record GachaPullResponse(
-        GachaCardResponse pulledCard,
+        GachaCardResponse highlightCard,
+        List<GachaPullItemResponse> results,
         int remainingPoints,
-        boolean duplicate
+        int pullCount
 ) {
 }
