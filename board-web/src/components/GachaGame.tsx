@@ -18,6 +18,8 @@ const RARITY_ORDER: GachaRarity[] = ["GOAT", "LEGEND", "UNIQUE", "RARE", "MAGIC"
 
 type PullPhase = "idle" | "spin" | "drop" | "burst" | "reveal";
 
+const SPIN_CARD_COUNT = 8;
+
 const RARITY_STYLE: Record<
   GachaRarity,
   {
@@ -100,28 +102,21 @@ export function GachaGame() {
 
   const busy = phase !== "idle" || isPending;
 
-  const marbles = useMemo(() => {
+  const spinCards = useMemo(() => {
     const rarities: GachaRarity[] = [
       "NORMAL",
-      "NORMAL",
-      "NORMAL",
-      "NORMAL",
       "MAGIC",
-      "MAGIC",
-      "MAGIC",
-      "RARE",
       "RARE",
       "UNIQUE",
       "LEGEND",
       "GOAT",
+      "RARE",
+      "MAGIC",
     ];
-    return rarities.map((rarity, index) => ({
+    return rarities.slice(0, SPIN_CARD_COUNT).map((rarity, index) => ({
       id: index,
       rarity,
-      left: 10 + ((index * 13) % 72),
-      top: 12 + ((index * 19) % 52),
-      delay: index * 0.12,
-      size: 26 + (index % 3) * 4,
+      angle: (360 / SPIN_CARD_COUNT) * index,
     }));
   }, []);
 
@@ -132,6 +127,48 @@ export function GachaGame() {
         left: 8 + ((index * 17) % 84),
         delay: index * 0.05,
         duration: 0.7 + (index % 5) * 0.12,
+      })),
+    []
+  );
+
+  const epicRayLayers = useMemo(() => {
+    const buildLayer = (count: number, seed: number) => {
+      const rays: {
+        id: number;
+        rotate: number;
+        width: number;
+        length: number;
+        opacity: number;
+      }[] = [];
+      for (let i = 0; i < count; i += 1) {
+        const base = (360 / count) * i;
+        const jitter = ((i * 13 + seed * 3) % 9) - 4;
+        rays.push({
+          id: i,
+          rotate: base + jitter,
+          width: 1.5 + (i % 5) * 0.8,
+          length: 48 + ((i + seed) % 8) * 3,
+          opacity: 0.35 + ((i + seed) % 5) * 0.1,
+        });
+      }
+      return rays;
+    };
+
+    return [
+      { id: "outer", rays: buildLayer(48, 0), duration: "1.55s", reverse: false },
+      { id: "inner", rays: buildLayer(32, 11), duration: "1.25s", reverse: true },
+      { id: "core", rays: buildLayer(20, 23), duration: "1.8s", reverse: false },
+    ];
+  }, []);
+
+  const epicShards = useMemo(
+    () =>
+      Array.from({ length: 24 }, (_, index) => ({
+        id: index,
+        left: 4 + ((index * 13) % 92),
+        delay: 0.05 + index * 0.03,
+        duration: 0.9 + (index % 4) * 0.15,
+        size: 4 + (index % 3) * 3,
       })),
     []
   );
@@ -187,18 +224,17 @@ export function GachaGame() {
 
     startTransition(async () => {
       try {
-        await wait(1100);
+        await wait(1300);
         const result = await pullGacha(
           accessToken,
           selectedRarity === "RANDOM" ? null : selectedRarity
         );
         setLastPull(result);
         setPhase("drop");
-        await wait(750);
+        await wait(850);
         setPhase("burst");
-        await wait(
-          result.pulledCard.rarity === "GOAT" || result.pulledCard.rarity === "LEGEND" ? 1100 : 800
-        );
+        const rarity = result.pulledCard.rarity;
+        await wait(rarity === "GOAT" ? 1500 : rarity === "LEGEND" ? 1250 : 800);
         setPhase("reveal");
         await reload(accessToken);
       } catch (err) {
@@ -221,6 +257,10 @@ export function GachaGame() {
   }
 
   const revealStyle = lastPull ? RARITY_STYLE[lastPull.pulledCard.rarity] : null;
+  const isEpicReveal =
+    lastPull?.pulledCard.rarity === "LEGEND" || lastPull?.pulledCard.rarity === "GOAT";
+  const isGoatReveal = lastPull?.pulledCard.rarity === "GOAT";
+  const isLegendReveal = lastPull?.pulledCard.rarity === "LEGEND";
 
   return (
     <div className="space-y-10">
@@ -229,7 +269,7 @@ export function GachaGame() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-sm tracking-[0.16em] text-muted uppercase">Capsule Vault</p>
-              <h2 className="mt-2 font-[family-name:var(--font-display)] text-3xl text-ink">구슬 뽑기</h2>
+              <h2 className="mt-2 font-[family-name:var(--font-display)] text-3xl text-ink">카드 뽑기</h2>
               <p className="mt-2 text-sm text-muted">
                 1회 뽑기 = 1포인트 · 현재 테마:{" "}
                 {theme?.displayName ?? getGachaThemeLabel(profile.cards[0]?.themeCode, "카드")}
@@ -279,50 +319,79 @@ export function GachaGame() {
           <div className="mt-8 flex flex-col items-center gap-6">
             <div
               className={`relative h-80 w-80 overflow-hidden rounded-[2.2rem] border-4 border-ink/80 bg-[radial-gradient(circle_at_50%_18%,rgba(255,255,255,0.22),transparent_34%),linear-gradient(180deg,#243044,#0b1220)] shadow-[inset_0_0_50px_rgba(255,255,255,0.08),0_20px_50px_rgba(15,23,42,0.35)] ${
-                phase === "spin" ? "animate-[gacha-shake_0.35s_ease-in-out_infinite]" : ""
-              } ${phase === "drop" ? "animate-[gacha-pulse_0.5s_ease-in-out_infinite]" : ""}`}
+                phase === "spin" ? "animate-[gacha-pulse_0.7s_ease-in-out_infinite]" : ""
+              }`}
             >
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(56,189,248,0.12),transparent_40%)]" />
-              <div className="absolute inset-x-10 top-5 h-11 rounded-full border border-white/25 bg-white/10 backdrop-blur" />
-              <div className="absolute inset-x-0 top-16 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 bg-[conic-gradient(from_90deg,transparent,rgba(255,255,255,0.05),transparent_40%)] opacity-70" />
 
-              {marbles.map((marble) => (
-                <span
-                  key={marble.id}
-                  className={`absolute rounded-full border border-white/50 shadow-[inset_-4px_-4px_8px_rgba(0,0,0,0.25),0_0_12px_rgba(255,255,255,0.15)] ${
-                    RARITY_STYLE[marble.rarity].marble
-                  } ${
+              <div className="absolute inset-0 flex items-center justify-center [perspective:980px]">
+                <div
+                  className={`relative h-40 w-28 [transform-style:preserve-3d] ${
                     phase === "spin"
-                      ? "animate-[gacha-chaos_0.45s_ease-in-out_infinite]"
+                      ? "animate-[gacha-wheel-spin_0.48s_linear_infinite]"
                       : phase === "drop"
-                        ? "animate-[gacha-drain_0.7s_ease-in_forwards]"
-                        : "animate-[gacha-float_3.2s_ease-in-out_infinite]"
+                        ? "animate-[gacha-wheel-collapse_0.8s_ease-in_forwards]"
+                        : phase === "burst" || phase === "reveal"
+                          ? "opacity-0"
+                          : "animate-[gacha-wheel-idle_7s_linear_infinite]"
                   }`}
-                  style={{
-                    left: `${marble.left}%`,
-                    top: `${marble.top}%`,
-                    width: marble.size,
-                    height: marble.size,
-                    animationDelay: `${marble.delay}s`,
-                  }}
-                />
-              ))}
+                >
+                  {spinCards.map((card) => {
+                    const style = RARITY_STYLE[card.rarity];
+                    return (
+                      <div
+                        key={card.id}
+                        className={`absolute inset-0 overflow-hidden rounded-[1.1rem] border-2 shadow-[0_10px_28px_rgba(0,0,0,0.35)] ${style.frame}`}
+                        style={{
+                          transform: `rotateY(${card.angle}deg) translateZ(118px)`,
+                        }}
+                      >
+                        <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.35),transparent_42%,rgba(0,0,0,0.12))]" />
+                        <div className="absolute inset-x-3 top-3 flex justify-between">
+                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${style.badge}`}>
+                            {style.label}
+                          </span>
+                          <span className="text-[9px] text-ink/50">?</span>
+                        </div>
+                        <div className="absolute inset-x-5 top-[38%] h-12 rounded-lg border border-white/40 bg-white/25" />
+                        <div className="absolute inset-x-6 bottom-4 h-2 rounded-full bg-ink/15" />
+                        <div className="absolute inset-x-8 bottom-8 h-2 rounded-full bg-ink/10" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
               {(phase === "drop" || phase === "burst") && lastPull && (
-                <span
-                  className={`absolute left-1/2 top-[58%] h-11 w-11 -translate-x-1/2 rounded-full border-2 border-white/70 ${
-                    RARITY_STYLE[lastPull.pulledCard.rarity].marble
-                  } animate-[gacha-marble-drop_0.7s_cubic-bezier(0.2,0.8,0.2,1)_forwards]`}
-                />
+                <div className="absolute inset-0 flex items-center justify-center [perspective:900px]">
+                  <div
+                    className={`h-44 w-32 overflow-hidden rounded-[1.2rem] border-2 ${
+                      RARITY_STYLE[lastPull.pulledCard.rarity].frame
+                    } ${RARITY_STYLE[lastPull.pulledCard.rarity].glow} animate-[gacha-card-settle_0.85s_cubic-bezier(0.2,0.85,0.2,1)_forwards]`}
+                  >
+                    <div className="flex h-full flex-col items-center justify-center bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.45),transparent_55%)]">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                          RARITY_STYLE[lastPull.pulledCard.rarity].badge
+                        }`}
+                      >
+                        {RARITY_STYLE[lastPull.pulledCard.rarity].label}
+                      </span>
+                      <div
+                        className={`mt-5 h-16 w-16 rounded-full border border-white/50 ${
+                          RARITY_STYLE[lastPull.pulledCard.rarity].marble
+                        } animate-[gacha-card-flipglow_0.85s_ease-in-out_infinite]`}
+                      />
+                      <p className="mt-4 text-xs text-ink/60">결정 중...</p>
+                    </div>
+                  </div>
+                </div>
               )}
 
-              <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-5 left-1/2 h-12 w-[4.5rem] -translate-x-1/2 overflow-hidden rounded-b-2xl border border-white/30 bg-gradient-to-b from-white/20 to-black/40">
-                <div
-                  className={`absolute inset-x-2 top-1 h-2 rounded-full bg-white/30 ${
-                    phase === "drop" ? "animate-[gacha-chute_0.6s_ease-in-out_infinite]" : ""
-                  }`}
-                />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/55 to-transparent" />
+              <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] tracking-wide text-white/70 backdrop-blur">
+                {phase === "idle" ? "READY" : phase === "spin" ? "SPINNING" : "LOCKING"}
               </div>
             </div>
 
@@ -385,7 +454,7 @@ export function GachaGame() {
             <h2 className="font-[family-name:var(--font-display)] text-3xl text-ink">내 카드 목록</h2>
             <p className="mt-2 text-sm text-muted">
               {profile.cards.length === 0
-                ? "아직 카드가 없습니다. 구슬을 뽑아 컬렉션을 시작하세요."
+                ? "아직 카드가 없습니다. 뽑기로 컬렉션을 시작하세요."
                 : `${profile.cards.length}종 · ${theme?.displayName ?? "현재 테마"}`}
             </p>
           </div>
@@ -408,27 +477,121 @@ export function GachaGame() {
       </section>
 
       {(phase === "burst" || phase === "reveal") && lastPull && revealStyle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+            isEpicReveal && phase === "burst"
+              ? isGoatReveal
+                ? "animate-[gacha-screen-shake_0.55s_ease-in-out]"
+                : "animate-[gacha-screen-shake-soft_0.45s_ease-in-out]"
+              : ""
+          }`}
+        >
           <button
             type="button"
             aria-label="닫기"
-            className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm"
+            className={`absolute inset-0 backdrop-blur-sm ${
+              isGoatReveal
+                ? "bg-slate-950/85"
+                : isLegendReveal
+                  ? "bg-rose-950/80"
+                  : "bg-slate-950/75"
+            }`}
             onClick={phase === "reveal" ? closeReveal : undefined}
           />
+
+          {isEpicReveal && (
+            <div
+              className={`pointer-events-none absolute inset-0 ${
+                phase === "burst"
+                  ? isGoatReveal
+                    ? "animate-[gacha-flash-gold_0.7s_ease-out_forwards]"
+                    : "animate-[gacha-flash-rose_0.55s_ease-out_forwards]"
+                  : "opacity-0"
+              }`}
+            />
+          )}
+
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <div
               className={`absolute left-1/2 top-1/2 h-[120vmax] w-[120vmax] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r ${revealStyle.burst} ${
-                phase === "burst" ? "animate-[gacha-ring_0.9s_ease-out_forwards]" : "opacity-40"
+                phase === "burst"
+                  ? isEpicReveal
+                    ? "animate-[gacha-ring-epic_1.2s_ease-out_forwards]"
+                    : "animate-[gacha-ring_0.9s_ease-out_forwards]"
+                  : isEpicReveal
+                    ? "opacity-50"
+                    : "opacity-40"
               }`}
             />
-            {sparks.map((spark) => (
+
+            {isEpicReveal && (
+              <div className="absolute inset-0 overflow-hidden">
+                {epicRayLayers.map((layer) => (
+                  <div
+                    key={layer.id}
+                    className={`absolute inset-0 ${
+                      phase === "burst"
+                        ? layer.reverse
+                          ? "animate-[gacha-ray-spin-reverse_1.35s_cubic-bezier(0.15,0.7,0.25,1)_forwards]"
+                          : "animate-[gacha-ray-spin_1.55s_cubic-bezier(0.15,0.7,0.25,1)_forwards]"
+                        : layer.reverse
+                          ? "animate-[gacha-ray-drift-reverse_10s_linear_infinite] opacity-30"
+                          : "animate-[gacha-ray-drift_12s_linear_infinite] opacity-35"
+                    }`}
+                    style={{
+                      animationDuration: phase === "burst" ? layer.duration : undefined,
+                    }}
+                  >
+                    {layer.rays.map((ray) => (
+                      <span
+                        key={`${layer.id}-${ray.id}`}
+                        className={`absolute left-1/2 top-1/2 rounded-full ${
+                          isGoatReveal
+                            ? "bg-gradient-to-b from-white via-yellow-200 to-amber-400/0"
+                            : "bg-gradient-to-b from-white via-orange-200 to-rose-500/0"
+                        }`}
+                        style={{
+                          width: `${ray.width}px`,
+                          height: `${ray.length}vmax`,
+                          marginLeft: `${-ray.width / 2}px`,
+                          opacity: ray.opacity,
+                          transform: `rotate(${ray.rotate}deg)`,
+                          transformOrigin: "top center",
+                          boxShadow: isGoatReveal
+                            ? "0 0 12px rgba(251, 191, 36, 0.55)"
+                            : "0 0 12px rgba(251, 113, 133, 0.5)",
+                        }}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {isEpicReveal && phase === "burst" && (
+              <div
+                className={`absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl ${
+                  isGoatReveal
+                    ? "bg-amber-300/70 animate-[gacha-core-pulse_1.2s_ease-out_forwards]"
+                    : "bg-rose-300/60 animate-[gacha-core-pulse_1s_ease-out_forwards]"
+                }`}
+              />
+            )}
+
+            {(isEpicReveal ? epicShards : sparks).map((spark) => (
               <span
                 key={spark.id}
-                className={`absolute top-1/2 h-2 w-2 rounded-full ${revealStyle.marble} ${
-                  phase === "burst" ? "animate-[gacha-spark_0.9s_ease-out_forwards]" : "opacity-0"
+                className={`absolute top-1/2 rounded-full ${revealStyle.marble} ${
+                  phase === "burst"
+                    ? isEpicReveal
+                      ? "animate-[gacha-spark-epic_1.15s_ease-out_forwards]"
+                      : "animate-[gacha-spark_0.9s_ease-out_forwards]"
+                    : "opacity-0"
                 }`}
                 style={{
                   left: `${spark.left}%`,
+                  width: "size" in spark ? spark.size : 8,
+                  height: "size" in spark ? spark.size : 8,
                   animationDelay: `${spark.delay}s`,
                   animationDuration: `${spark.duration}s`,
                 }}
@@ -437,25 +600,81 @@ export function GachaGame() {
           </div>
 
           <div
-            className={`relative z-10 w-full max-w-md rounded-[2rem] border border-white/20 bg-slate-950/80 p-6 text-center shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${
-              phase === "reveal" ? "animate-[gacha-reveal_0.55s_cubic-bezier(0.2,0.9,0.2,1)_forwards]" : "scale-90 opacity-0"
+            className={`relative z-10 w-full max-w-md rounded-[2rem] border p-6 text-center shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${
+              isGoatReveal
+                ? "border-amber-300/50 bg-gradient-to-b from-amber-950/90 via-slate-950/90 to-black/90"
+                : isLegendReveal
+                  ? "border-rose-300/40 bg-gradient-to-b from-rose-950/90 via-slate-950/90 to-black/90"
+                  : "border-white/20 bg-slate-950/80"
+            } ${
+              phase === "reveal"
+                ? isGoatReveal
+                  ? "animate-[gacha-reveal-goat_0.9s_cubic-bezier(0.16,0.9,0.2,1)_forwards]"
+                  : isLegendReveal
+                    ? "animate-[gacha-reveal-legend_0.75s_cubic-bezier(0.16,0.9,0.2,1)_forwards]"
+                    : "animate-[gacha-reveal_0.55s_cubic-bezier(0.2,0.9,0.2,1)_forwards]"
+                : "scale-90 opacity-0"
             }`}
           >
-            <p className={`text-sm tracking-[0.2em] uppercase ${revealStyle.title}`}>
-              {lastPull.duplicate ? "Duplicate Pull" : "New Card"}
+            {isEpicReveal && phase === "reveal" && (
+              <div
+                className={`pointer-events-none absolute -inset-8 -z-10 rounded-[2.5rem] blur-2xl ${
+                  isGoatReveal
+                    ? "bg-amber-400/25 animate-[gacha-aura_2s_ease-in-out_infinite]"
+                    : "bg-rose-400/20 animate-[gacha-aura_2.2s_ease-in-out_infinite]"
+                }`}
+              />
+            )}
+
+            <p
+              className={`text-sm tracking-[0.2em] uppercase ${
+                isGoatReveal
+                  ? "text-amber-200 animate-[gacha-title-glint_1.4s_ease-in-out_infinite]"
+                  : revealStyle.title
+              }`}
+            >
+              {isGoatReveal
+                ? "MYTHIC APPEARANCE"
+                : isLegendReveal
+                  ? "LEGENDARY PULL"
+                  : lastPull.duplicate
+                    ? "Duplicate Pull"
+                    : "New Card"}
             </p>
-            <h3 className="mt-2 font-[family-name:var(--font-display)] text-3xl text-white">
-              {revealStyle.label} 등장!
+            <h3
+              className={`mt-2 font-[family-name:var(--font-display)] text-3xl ${
+                isGoatReveal
+                  ? "bg-gradient-to-r from-yellow-200 via-amber-100 to-yellow-300 bg-clip-text text-transparent"
+                  : isLegendReveal
+                    ? "text-rose-100"
+                    : "text-white"
+              }`}
+            >
+              {isGoatReveal
+                ? "GOAT 강림!"
+                : isLegendReveal
+                  ? "레전드 등장!"
+                  : `${revealStyle.label} 등장!`}
             </h3>
             <div className="mx-auto mt-6 max-w-xs text-left">
-              <GachaCardView card={lastPull.pulledCard} featured />
+              <GachaCardView
+                card={lastPull.pulledCard}
+                featured
+                epicEntrance={isEpicReveal && phase === "reveal"}
+              />
             </div>
             <p className="mt-5 text-sm text-white/70">남은 포인트 {lastPull.remainingPoints}</p>
             {phase === "reveal" && (
               <button
                 type="button"
                 onClick={closeReveal}
-                className="pointer-events-auto mt-6 rounded-full bg-white px-6 py-2.5 text-sm font-medium text-ink transition hover:bg-accent-soft"
+                className={`pointer-events-auto mt-6 rounded-full px-6 py-2.5 text-sm font-medium transition ${
+                  isGoatReveal
+                    ? "bg-gradient-to-r from-amber-200 to-yellow-300 text-ink hover:brightness-110"
+                    : isLegendReveal
+                      ? "bg-gradient-to-r from-rose-200 to-orange-200 text-ink hover:brightness-110"
+                      : "bg-white text-ink hover:bg-accent-soft"
+                }`}
               >
                 확인
               </button>
@@ -467,19 +686,43 @@ export function GachaGame() {
   );
 }
 
-function GachaCardView({ card, featured = false }: { card: GachaCard; featured?: boolean }) {
+function GachaCardView({
+  card,
+  featured = false,
+  epicEntrance = false,
+}: {
+  card: GachaCard;
+  featured?: boolean;
+  epicEntrance?: boolean;
+}) {
   const style = RARITY_STYLE[card.rarity];
   const isGoat = card.rarity === "GOAT";
+  const isLegend = card.rarity === "LEGEND";
   const imageUrl = resolveGachaImageUrl(card);
 
   return (
     <article
       className={`relative overflow-hidden rounded-[1.4rem] border-2 p-3 ${style.frame} ${style.glow} ${
-        featured ? "animate-[gacha-card-pop_0.6s_cubic-bezier(0.2,0.9,0.2,1)_forwards]" : ""
+        epicEntrance && isGoat
+          ? "animate-[gacha-card-pop-goat_0.95s_cubic-bezier(0.16,0.9,0.2,1)_forwards]"
+          : epicEntrance && isLegend
+            ? "animate-[gacha-card-pop-legend_0.8s_cubic-bezier(0.16,0.9,0.2,1)_forwards]"
+            : featured
+              ? "animate-[gacha-card-pop_0.6s_cubic-bezier(0.2,0.9,0.2,1)_forwards]"
+              : ""
       }`}
     >
       {featured && (
         <div className="pointer-events-none absolute -left-10 top-0 h-full w-16 rotate-12 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[gacha-button-shine_1.4s_linear_infinite]" />
+      )}
+      {epicEntrance && (
+        <div
+          className={`pointer-events-none absolute inset-0 ${
+            isGoat
+              ? "bg-[radial-gradient(circle_at_50%_20%,rgba(251,191,36,0.45),transparent_55%)] animate-[gacha-card-shine_1.2s_ease-out_forwards]"
+              : "bg-[radial-gradient(circle_at_50%_20%,rgba(251,113,133,0.4),transparent_55%)] animate-[gacha-card-shine_1s_ease-out_forwards]"
+          }`}
+        />
       )}
       <div className="flex items-start justify-between gap-3">
         <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide ${style.badge}`}>
@@ -516,9 +759,9 @@ function GachaCardView({ card, featured = false }: { card: GachaCard; featured?:
 function phaseLabel(phase: PullPhase) {
   switch (phase) {
     case "spin":
-      return "구슬이 뒤섞이는 중...";
+      return "카드가 도는 중...";
     case "drop":
-      return "한 알이 떨어지는 중...";
+      return "카드가 정해지는 중...";
     case "burst":
       return "결과 확인 중...";
     case "reveal":

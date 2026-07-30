@@ -81,19 +81,6 @@ textarea {
   }
 }
 
-@keyframes gacha-shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-3px) rotate(-0.4deg);
-  }
-  75% {
-    transform: translateX(3px) rotate(0.4deg);
-  }
-}
-
 @keyframes gacha-pulse {
   0%,
   100% {
@@ -128,54 +115,66 @@ textarea {
   }
 }
 
-@keyframes gacha-chaos {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
+@keyframes gacha-wheel-idle {
+  from {
+    transform: rotateY(0deg);
   }
-  25% {
-    transform: translate(10px, -14px) scale(1.08);
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+@keyframes gacha-wheel-spin {
+  from {
+    transform: rotateY(0deg) scale(1);
   }
   50% {
-    transform: translate(-8px, 10px) scale(0.95);
+    transform: rotateY(180deg) scale(1.06);
   }
-  75% {
-    transform: translate(12px, 6px) scale(1.05);
+  to {
+    transform: rotateY(360deg) scale(1);
   }
 }
 
-@keyframes gacha-drain {
+@keyframes gacha-wheel-collapse {
   0% {
-    transform: translateY(0) scale(1);
+    transform: rotateY(0deg) scale(1);
     opacity: 1;
   }
-  100% {
-    transform: translateY(90px) scale(0.7);
-    opacity: 0.15;
+  70% {
+    transform: rotateY(220deg) scale(0.55);
+    opacity: 0.45;
   }
-}
-
-@keyframes gacha-marble-drop {
-  0% {
-    transform: translate(-50%, -80px) scale(0.7);
+  100% {
+    transform: rotateY(320deg) scale(0.2);
     opacity: 0;
   }
-  40% {
+}
+
+@keyframes gacha-card-settle {
+  0% {
+    transform: rotateY(90deg) scale(0.45);
+    opacity: 0;
+  }
+  55% {
+    transform: rotateY(-16deg) scale(1.08);
     opacity: 1;
   }
   100% {
-    transform: translate(-50%, 42px) scale(1);
+    transform: rotateY(0deg) scale(1);
     opacity: 1;
   }
 }
 
-@keyframes gacha-chute {
+@keyframes gacha-card-flipglow {
   0%,
   100% {
-    opacity: 0.35;
+    transform: scale(1);
+    filter: brightness(1);
   }
   50% {
-    opacity: 0.9;
+    transform: scale(1.08);
+    filter: brightness(1.2);
   }
 }
 
@@ -199,6 +198,20 @@ textarea {
   }
 }
 
+@keyframes gacha-ring-epic {
+  0% {
+    transform: translate(-50%, -50%) scale(0.08);
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.35);
+    opacity: 0;
+  }
+}
+
 @keyframes gacha-spark {
   0% {
     transform: translateY(0) scale(1);
@@ -207,6 +220,149 @@ textarea {
   100% {
     transform: translateY(-140px) scale(0.2);
     opacity: 0;
+  }
+}
+
+@keyframes gacha-spark-epic {
+  0% {
+    transform: translateY(0) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-220px) scale(0.15);
+    opacity: 0;
+  }
+}
+
+@keyframes gacha-beam {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+  }
+  25% {
+    opacity: 0.95;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(12px);
+  }
+}
+
+@keyframes gacha-ray-spin {
+  0% {
+    transform: rotate(0deg) scale(0.35);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: rotate(320deg) scale(1.18);
+    opacity: 0.25;
+  }
+}
+
+@keyframes gacha-ray-spin-reverse {
+  0% {
+    transform: rotate(0deg) scale(0.3);
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-380deg) scale(1.25);
+    opacity: 0.2;
+  }
+}
+
+@keyframes gacha-ray-drift {
+  from {
+    transform: rotate(0deg) scale(1.05);
+  }
+  to {
+    transform: rotate(360deg) scale(1.05);
+  }
+}
+
+@keyframes gacha-ray-drift-reverse {
+  from {
+    transform: rotate(0deg) scale(0.95);
+  }
+  to {
+    transform: rotate(-360deg) scale(0.95);
+  }
+}
+
+@keyframes gacha-core-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes gacha-flash-gold {
+  0% {
+    background: rgba(255, 248, 220, 0.95);
+    opacity: 1;
+  }
+  100% {
+    background: rgba(251, 191, 36, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes gacha-flash-rose {
+  0% {
+    background: rgba(255, 228, 230, 0.88);
+    opacity: 1;
+  }
+  100% {
+    background: rgba(244, 63, 94, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes gacha-screen-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-6px, 3px);
+  }
+  40% {
+    transform: translate(7px, -4px);
+  }
+  60% {
+    transform: translate(-5px, -2px);
+  }
+  80% {
+    transform: translate(4px, 3px);
+  }
+}
+
+@keyframes gacha-screen-shake-soft {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-3px, 2px);
+  }
+  50% {
+    transform: translate(3px, -2px);
+  }
+  75% {
+    transform: translate(-2px, 1px);
   }
 }
 
@@ -221,6 +377,43 @@ textarea {
   }
 }
 
+@keyframes gacha-reveal-legend {
+  0% {
+    transform: translateY(40px) scale(0.72) rotate(-2deg);
+    opacity: 0;
+  }
+  55% {
+    transform: translateY(-6px) scale(1.05) rotate(1deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes gacha-reveal-goat {
+  0% {
+    transform: translateY(56px) scale(0.55) rotate(4deg);
+    opacity: 0;
+    filter: brightness(2.2);
+  }
+  45% {
+    transform: translateY(-10px) scale(1.12) rotate(-2deg);
+    opacity: 1;
+    filter: brightness(1.35);
+  }
+  70% {
+    transform: translateY(4px) scale(0.98) rotate(1deg);
+    filter: brightness(1.05);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
 @keyframes gacha-card-pop {
   0% {
     transform: rotateY(70deg) scale(0.7);
@@ -229,5 +422,73 @@ textarea {
   100% {
     transform: rotateY(0deg) scale(1);
     opacity: 1;
+  }
+}
+
+@keyframes gacha-card-pop-legend {
+  0% {
+    transform: rotateY(95deg) scale(0.45);
+    opacity: 0;
+  }
+  60% {
+    transform: rotateY(-12deg) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: rotateY(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes gacha-card-pop-goat {
+  0% {
+    transform: rotateY(120deg) scale(0.3);
+    opacity: 0;
+    filter: drop-shadow(0 0 0 rgba(251, 191, 36, 0));
+  }
+  50% {
+    transform: rotateY(-18deg) scale(1.16);
+    opacity: 1;
+    filter: drop-shadow(0 0 28px rgba(251, 191, 36, 0.85));
+  }
+  75% {
+    transform: rotateY(8deg) scale(0.97);
+  }
+  100% {
+    transform: rotateY(0deg) scale(1);
+    filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.45));
+  }
+}
+
+@keyframes gacha-card-shine {
+  0% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes gacha-aura {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes gacha-title-glint {
+  0%,
+  100% {
+    opacity: 0.75;
+    letter-spacing: 0.2em;
+  }
+  50% {
+    opacity: 1;
+    letter-spacing: 0.28em;
   }
 }
