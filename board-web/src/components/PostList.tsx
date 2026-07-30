@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getPostWriteSetting } from "@/lib/api";
+import { getLoginId, isSuperAdmin } from "@/lib/auth";
 import type { Post } from "@/lib/types";
 import { formatDateTime } from "@/lib/format";
 
@@ -7,17 +12,32 @@ type PostListProps = {
 };
 
 export function PostList({ posts }: PostListProps) {
+  const [canWrite, setCanWrite] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const admin = isSuperAdmin(getLoginId());
+    setIsAdmin(admin);
+    getPostWriteSetting()
+      .then((setting) => setCanWrite(setting.enabled || admin))
+      .catch(() => setCanWrite(true));
+  }, []);
+
   if (posts.length === 0) {
     return (
       <div className="rounded-3xl border border-dashed border-line bg-bg-elevated/70 px-8 py-16 text-center">
         <p className="font-[family-name:var(--font-display)] text-2xl text-ink">아직 글이 없습니다</p>
-        <p className="mt-3 text-muted">첫 게시글을 작성해 보세요.</p>
-        <Link
-          href="/board/new"
-          className="mt-8 inline-flex rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white"
-        >
-          글쓰기
-        </Link>
+        <p className="mt-3 text-muted">
+          {canWrite ? "첫 게시글을 작성해 보세요." : "현재 글쓰기가 비활성화되어 있습니다."}
+        </p>
+        {canWrite && (
+          <Link
+            href="/board/new"
+            className="mt-8 inline-flex rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white"
+          >
+            글쓰기
+          </Link>
+        )}
       </div>
     );
   }
@@ -32,9 +52,16 @@ export function PostList({ posts }: PostListProps) {
           >
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="min-w-0">
-                <h2 className="truncate text-lg font-medium text-ink transition group-hover:text-accent md:text-xl">
-                  {post.title}
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="truncate text-lg font-medium text-ink transition group-hover:text-accent md:text-xl">
+                    {post.title}
+                  </h2>
+                  {isAdmin && post.hidden && (
+                    <span className="shrink-0 rounded-full border border-line bg-white px-2 py-0.5 text-xs text-muted">
+                      숨김
+                    </span>
+                  )}
+                </div>
                 <p className="mt-1 truncate text-sm text-muted">{post.content}</p>
               </div>
               <div className="shrink-0 text-sm text-muted md:text-right">

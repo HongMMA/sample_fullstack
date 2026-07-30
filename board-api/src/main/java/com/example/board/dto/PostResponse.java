@@ -8,6 +8,7 @@ public record PostResponse(
         String title,
         String content,
         String author,
+        boolean hidden,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -17,6 +18,7 @@ public record PostResponse(
                 post.getTitle(),
                 post.getContent(),
                 post.getAuthor(),
+                post.isHidden(),
                 post.getCreatedAt(),
                 post.getUpdatedAt()
         );

@@ -36,3 +36,7 @@ export function clearAuthSession() {
 export function isGuestLoginId(loginId: string | null | undefined) {
   return Boolean(loginId?.startsWith("guest"));
 }
+
+export function isSuperAdmin(loginId: string | null | undefined) {
+  return loginId === "superadmin";
+}

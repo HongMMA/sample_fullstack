@@ -12,32 +12,28 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "user_accounts")
+@Table(name = "app_settings")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserAccount {
+public class AppSetting {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 30)
-    private String loginId;
+    @Column(nullable = false, unique = true, length = 50)
+    private String settingKey;
 
     @Column(nullable = false, length = 100)
-    private String password;
-
-    @Column(length = 64)
-    private String signupIp;
+    private String settingValue;
 
     @Builder
-    public UserAccount(String loginId, String password, String signupIp) {
-        this.loginId = loginId;
-        this.password = password;
-        this.signupIp = signupIp;
+    public AppSetting(String settingKey, String settingValue) {
+        this.settingKey = settingKey;
+        this.settingValue = settingValue;
     }
 
-    public void updatePassword(String password) {
-        this.password = password;
+    public void updateValue(String settingValue) {
+        this.settingValue = settingValue;
     }
 }

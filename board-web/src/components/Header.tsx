@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getPostWriteSetting } from "@/lib/api";
+import { getLoginId, isSuperAdmin } from "@/lib/auth";
 
 type HeaderProps = {
   actionHref?: string;
@@ -6,6 +11,19 @@ type HeaderProps = {
 };
 
 export function Header({ actionHref = "/board/new", actionLabel = "글쓰기" }: HeaderProps) {
+  const [loginId, setLoginId] = useState<string | null>(null);
+  const [postWriteEnabled, setPostWriteEnabled] = useState(true);
+  const isWriteAction = actionHref === "/board/new" && actionLabel === "글쓰기";
+
+  useEffect(() => {
+    setLoginId(getLoginId());
+    getPostWriteSetting()
+      .then((setting) => setPostWriteEnabled(setting.enabled))
+      .catch(() => setPostWriteEnabled(true));
+  }, []);
+
+  const canWrite = postWriteEnabled || isSuperAdmin(loginId);
+
   return (
     <header className="mb-10 flex items-end justify-between gap-6 border-b border-line pb-6">
       <div>
@@ -14,7 +32,15 @@ export function Header({ actionHref = "/board/new", actionLabel = "글쓰기" }:
           게시판
         </Link>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {isSuperAdmin(loginId) && (
+          <Link
+            href="/admin"
+            className="inline-flex items-center rounded-full border border-line bg-white px-5 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent"
+          >
+            관리
+          </Link>
+        )}
         <Link
           href="/login"
           className="inline-flex items-center rounded-full border border-line bg-white px-5 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent"
@@ -33,12 +59,18 @@ export function Header({ actionHref = "/board/new", actionLabel = "글쓰기" }:
         >
           게임
         </Link>
-        <Link
-          href={actionHref}
-          className="inline-flex items-center rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:brightness-110"
-        >
-          {actionLabel}
-        </Link>
+        {isWriteAction && !canWrite ? (
+          <span className="inline-flex items-center rounded-full border border-line bg-white px-5 py-2.5 text-sm font-medium text-muted">
+            글쓰기 중지됨
+          </span>
+        ) : (
+          <Link
+            href={actionHref}
+            className="inline-flex items-center rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:brightness-110"
+          >
+            {actionLabel}
+          </Link>
+        )}
       </div>
     </header>
   );

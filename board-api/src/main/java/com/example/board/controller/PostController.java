@@ -1,6 +1,7 @@
 package com.example.board.controller;
 
 import com.example.board.dto.PostCreateRequest;
+import com.example.board.dto.PostHiddenUpdateRequest;
 import com.example.board.dto.PostResponse;
 import com.example.board.dto.PostUpdateRequest;
 import com.example.board.service.AuthService;
@@ -38,13 +39,18 @@ public class PostController {
     }
 
     @GetMapping
-    public List<PostResponse> findAll() {
-        return postService.findAll();
+    public List<PostResponse> findAll(
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader
+    ) {
+        return postService.findAll(authService.isSuperAdmin(authorizationHeader));
     }
 
     @GetMapping("/{id}")
-    public PostResponse findById(@PathVariable Long id) {
-        return postService.findById(id);
+    public PostResponse findById(
+            @PathVariable Long id,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader
+    ) {
+        return postService.findById(id, authService.isSuperAdmin(authorizationHeader));
     }
 
     @PutMapping("/{id}")
@@ -54,6 +60,16 @@ public class PostController {
             @Valid @RequestBody PostUpdateRequest request
     ) {
         return postService.update(authService.authenticate(authorizationHeader), id, request);
+    }
+
+    @PutMapping("/{id}/hidden")
+    public PostResponse updateHidden(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable Long id,
+            @Valid @RequestBody PostHiddenUpdateRequest request
+    ) {
+        authService.requireSuperAdmin(authorizationHeader);
+        return postService.updateHidden(id, request.hidden());
     }
 
     @DeleteMapping("/{id}")

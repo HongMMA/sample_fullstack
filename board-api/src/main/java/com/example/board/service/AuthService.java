@@ -7,6 +7,7 @@ import com.example.board.dto.LoginResponse;
 import com.example.board.dto.MeResponse;
 import com.example.board.dto.SignupRequest;
 import com.example.board.exception.BadRequestException;
+import com.example.board.exception.ForbiddenException;
 import com.example.board.exception.UnauthorizedException;
 import com.example.board.repository.AuthTokenRepository;
 import com.example.board.repository.UserAccountRepository;
@@ -21,16 +22,26 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    public static final String SUPERADMIN_LOGIN_ID = "superadmin";
 
     private final UserAccountRepository userAccountRepository;
     private final AuthTokenRepository authTokenRepository;
 
     @Transactional
-    public LoginResponse signup(SignupRequest request) {
+    public LoginResponse signup(SignupRequest request, String clientIp) {
         String loginId = request.loginId().trim();
 
         if (!request.password().equals(request.passwordConfirm())) {
             throw new BadRequestException("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+        }
+
+        if (SUPERADMIN_LOGIN_ID.equalsIgnoreCase(loginId)) {
+            throw new BadRequestException("사용할 수 없는 아이디입니다.");
+        }
+
+        String lowerLoginId = loginId.toLowerCase();
+        if (lowerLoginId.contains("hoon") || loginId.contains("훈")) {
+            throw new BadRequestException("부적절한 단어가 포함되어있습니다.");
         }
 
         if (userAccountRepository.existsByLoginId(loginId)) {
@@ -41,6 +52,7 @@ public class AuthService {
                 UserAccount.builder()
                         .loginId(loginId)
                         .password(request.password())
+                        .signupIp(clientIp)
                         .build()
         );
 
@@ -60,7 +72,7 @@ public class AuthService {
     }
 
     @Transactional
-    public LoginResponse loginAsGuest() {
+    public LoginResponse loginAsGuest(String clientIp) {
         String loginId;
         do {
             loginId = "guest" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
@@ -70,6 +82,7 @@ public class AuthService {
                 UserAccount.builder()
                         .loginId(loginId)
                         .password(UUID.randomUUID().toString())
+                        .signupIp(clientIp)
                         .build()
         );
 
@@ -98,6 +111,26 @@ public class AuthService {
         Long userId = authToken.getUserAccount().getId();
         return userAccountRepository.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException());
+    }
+
+    public UserAccount requireSuperAdmin(String authorizationHeader) {
+        UserAccount userAccount = authenticate(authorizationHeader);
+        if (!SUPERADMIN_LOGIN_ID.equals(userAccount.getLoginId())) {
+            throw new ForbiddenException("superadmin만 사용할 수 있는 기능입니다.");
+        }
+        return userAccount;
+    }
+
+    public boolean isSuperAdmin(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+            return false;
+        }
+        try {
+            UserAccount userAccount = authenticate(authorizationHeader);
+            return SUPERADMIN_LOGIN_ID.equals(userAccount.getLoginId());
+        } catch (UnauthorizedException ex) {
+            return false;
+        }
     }
 
     private String extractBearerToken(String authorizationHeader) {

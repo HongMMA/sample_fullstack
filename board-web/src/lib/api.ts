@@ -1,5 +1,8 @@
 import type {
   ApiErrorBody,
+  Comment,
+  CommentCreateInput,
+  CommentUpdateInput,
   GameScore,
   GameScoreCreateInput,
   LoginInput,
@@ -8,6 +11,7 @@ import type {
   Post,
   PostCreateInput,
   PostUpdateInput,
+  PostWriteSetting,
   SignupInput,
 } from "./types";
 
@@ -60,12 +64,12 @@ async function request<T>(path: string, init?: RequestOptions): Promise<T> {
   return data as T;
 }
 
-export function getPosts() {
-  return request<Post[]>("/api/posts");
+export function getPosts(accessToken?: string | null) {
+  return request<Post[]>("/api/posts", { accessToken });
 }
 
-export function getPost(id: number) {
-  return request<Post>(`/api/posts/${id}`);
+export function getPost(id: number, accessToken?: string | null) {
+  return request<Post>(`/api/posts/${id}`, { accessToken });
 }
 
 export function createPost(input: PostCreateInput, accessToken: string) {
@@ -84,8 +88,43 @@ export function updatePost(id: number, input: PostUpdateInput, accessToken: stri
   });
 }
 
+export function updatePostHidden(id: number, hidden: boolean, accessToken: string) {
+  return request<Post>(`/api/posts/${id}/hidden`, {
+    method: "PUT",
+    body: JSON.stringify({ hidden }),
+    accessToken,
+  });
+}
+
 export function deletePost(id: number, accessToken: string) {
   return request<void>(`/api/posts/${id}`, {
+    method: "DELETE",
+    accessToken,
+  });
+}
+
+export function getComments(postId: number, accessToken?: string | null) {
+  return request<Comment[]>(`/api/posts/${postId}/comments`, { accessToken });
+}
+
+export function createComment(postId: number, input: CommentCreateInput, accessToken: string) {
+  return request<Comment>(`/api/posts/${postId}/comments`, {
+    method: "POST",
+    body: JSON.stringify(input),
+    accessToken,
+  });
+}
+
+export function updateComment(id: number, input: CommentUpdateInput, accessToken: string) {
+  return request<Comment>(`/api/comments/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+    accessToken,
+  });
+}
+
+export function deleteComment(id: number, accessToken: string) {
+  return request<void>(`/api/comments/${id}`, {
     method: "DELETE",
     accessToken,
   });
@@ -125,6 +164,18 @@ export function loginAsGuest() {
 
 export function getMe(accessToken: string) {
   return request<Me>("/api/auth/me", {
+    accessToken,
+  });
+}
+
+export function getPostWriteSetting() {
+  return request<PostWriteSetting>("/api/admin/settings/post-write");
+}
+
+export function updatePostWriteSetting(enabled: boolean, accessToken: string) {
+  return request<PostWriteSetting>("/api/admin/settings/post-write", {
+    method: "PUT",
+    body: JSON.stringify({ enabled }),
     accessToken,
   });
 }

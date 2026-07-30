@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { EditPostGuard } from "@/components/EditPostGuard";
 import { ApiError, getPost } from "@/lib/api";
+import { getServerAccessToken } from "@/lib/server-auth";
 
 type EditPostPageProps = {
   params: Promise<{ id: string }>;
@@ -16,7 +17,7 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
 
   let post;
   try {
-    post = await getPost(postId);
+    post = await getPost(postId, await getServerAccessToken());
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       notFound();

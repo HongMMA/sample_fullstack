@@ -5,6 +5,8 @@ import com.example.board.dto.LoginResponse;
 import com.example.board.dto.MeResponse;
 import com.example.board.dto.SignupRequest;
 import com.example.board.service.AuthService;
+import com.example.board.util.ClientIpResolver;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,8 +27,11 @@ public class AuthController {
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
-    public LoginResponse signup(@Valid @RequestBody SignupRequest request) {
-        return authService.signup(request);
+    public LoginResponse signup(
+            @Valid @RequestBody SignupRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        return authService.signup(request, ClientIpResolver.resolve(httpRequest));
     }
 
     @PostMapping("/login")
@@ -37,8 +42,8 @@ public class AuthController {
 
     @PostMapping("/guest")
     @ResponseStatus(HttpStatus.CREATED)
-    public LoginResponse guest() {
-        return authService.loginAsGuest();
+    public LoginResponse guest(HttpServletRequest httpRequest) {
+        return authService.loginAsGuest(ClientIpResolver.resolve(httpRequest));
     }
 
     @GetMapping("/me")

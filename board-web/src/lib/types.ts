@@ -3,6 +3,7 @@ export type Post = {
   title: string;
   content: string;
   author: string;
+  hidden: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -14,6 +15,26 @@ export type PostCreateInput = {
 
 export type PostUpdateInput = {
   title: string;
+  content: string;
+};
+
+export type Comment = {
+  id: number;
+  postId: number;
+  parentId: number | null;
+  content: string;
+  author: string;
+  createdAt: string;
+  updatedAt: string;
+  replies: Comment[];
+};
+
+export type CommentCreateInput = {
+  content: string;
+  parentId?: number | null;
+};
+
+export type CommentUpdateInput = {
   content: string;
 };
 
@@ -62,4 +83,8 @@ export type LoginResponse = {
 export type Me = {
   id: number;
   loginId: string;
+};
+
+export type PostWriteSetting = {
+  enabled: boolean;
 };
