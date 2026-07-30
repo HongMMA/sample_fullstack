@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getPostWriteSetting } from "@/lib/api";
+import { getGachaServiceSetting, getPostWriteSetting } from "@/lib/api";
 import { getLoginId, isGuestLoginId, isSuperAdmin } from "@/lib/auth";
 
 type HeaderProps = {
@@ -13,6 +13,7 @@ type HeaderProps = {
 export function Header({ actionHref = "/board/new", actionLabel = "글쓰기" }: HeaderProps) {
   const [loginId, setLoginId] = useState<string | null>(null);
   const [postWriteEnabled, setPostWriteEnabled] = useState(true);
+  const [gachaEnabled, setGachaEnabled] = useState(false);
   const isWriteAction = actionHref === "/board/new" && actionLabel === "글쓰기";
 
   useEffect(() => {
@@ -20,10 +21,14 @@ export function Header({ actionHref = "/board/new", actionLabel = "글쓰기" }:
     getPostWriteSetting()
       .then((setting) => setPostWriteEnabled(setting.enabled))
       .catch(() => setPostWriteEnabled(true));
+    getGachaServiceSetting()
+      .then((setting) => setGachaEnabled(setting.enabled))
+      .catch(() => setGachaEnabled(false));
   }, []);
 
   const isGuest = isGuestLoginId(loginId);
   const canWrite = !isGuest && (postWriteEnabled || isSuperAdmin(loginId));
+  const canSeeGacha = Boolean(loginId) && !isGuest && (gachaEnabled || isSuperAdmin(loginId));
 
   return (
     <header className="mb-10 flex items-end justify-between gap-6 border-b border-line pb-6">
@@ -42,7 +47,7 @@ export function Header({ actionHref = "/board/new", actionLabel = "글쓰기" }:
             관리
           </Link>
         )}
-        {isSuperAdmin(loginId) && (
+        {canSeeGacha && (
           <Link
             href="/gacha"
             className="inline-flex items-center rounded-full border border-line bg-white px-5 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent"

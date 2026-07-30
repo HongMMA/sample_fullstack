@@ -7,6 +7,8 @@ import type {
   GachaPullResult,
   GachaRankingEntry,
   GachaRarity,
+  GachaPlayerPoints,
+  GachaServiceSetting,
   GachaTheme,
   GachaThemeOption,
   GameScore,
@@ -200,6 +202,18 @@ export function updatePostWriteSetting(enabled: boolean, accessToken: string) {
   });
 }
 
+export function getGachaServiceSetting() {
+  return request<GachaServiceSetting>("/api/admin/settings/gacha");
+}
+
+export function updateGachaServiceSetting(enabled: boolean, accessToken: string) {
+  return request<GachaServiceSetting>("/api/admin/settings/gacha", {
+    method: "PUT",
+    body: JSON.stringify({ enabled }),
+    accessToken,
+  });
+}
+
 export function getGachaProfile(accessToken: string) {
   return request<GachaProfile>("/api/gacha/me", { accessToken });
 }
@@ -216,6 +230,25 @@ export function updateAdminGachaTheme(themeCode: string, accessToken: string) {
   return request<GachaTheme>("/api/admin/gacha/theme", {
     method: "PUT",
     body: JSON.stringify({ themeCode }),
+    accessToken,
+  });
+}
+
+export function getAdminGachaPlayerPoints(loginId: string, accessToken: string) {
+  return request<GachaPlayerPoints>(
+    `/api/admin/gacha/player-points?loginId=${encodeURIComponent(loginId)}`,
+    { accessToken }
+  );
+}
+
+export function updateAdminGachaPlayerPoints(
+  loginId: string,
+  delta: number,
+  accessToken: string
+) {
+  return request<GachaPlayerPoints>("/api/admin/gacha/player-points", {
+    method: "PUT",
+    body: JSON.stringify({ loginId, delta }),
     accessToken,
   });
 }

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AppSettingService {
 
     public static final String POST_WRITE_ENABLED_KEY = "POST_WRITE_ENABLED";
+    public static final String GACHA_ENABLED_KEY = "GACHA_ENABLED";
 
     private final AppSettingRepository appSettingRepository;
 
@@ -22,15 +23,34 @@ public class AppSettingService {
                 .orElse(true);
     }
 
+    public boolean isGachaEnabled() {
+        return appSettingRepository.findBySettingKey(GACHA_ENABLED_KEY)
+                .map(setting -> Boolean.parseBoolean(setting.getSettingValue()))
+                .orElse(false);
+    }
+
     public PostWriteSettingResponse getPostWriteSetting() {
         return new PostWriteSettingResponse(isPostWriteEnabled());
     }
 
+    public PostWriteSettingResponse getGachaSetting() {
+        return new PostWriteSettingResponse(isGachaEnabled());
+    }
+
     @Transactional
     public PostWriteSettingResponse updatePostWriteSetting(boolean enabled) {
-        AppSetting setting = appSettingRepository.findBySettingKey(POST_WRITE_ENABLED_KEY)
+        return upsertBooleanSetting(POST_WRITE_ENABLED_KEY, enabled);
+    }
+
+    @Transactional
+    public PostWriteSettingResponse updateGachaSetting(boolean enabled) {
+        return upsertBooleanSetting(GACHA_ENABLED_KEY, enabled);
+    }
+
+    private PostWriteSettingResponse upsertBooleanSetting(String key, boolean enabled) {
+        AppSetting setting = appSettingRepository.findBySettingKey(key)
                 .orElseGet(() -> AppSetting.builder()
-                        .settingKey(POST_WRITE_ENABLED_KEY)
+                        .settingKey(key)
                         .settingValue(Boolean.toString(enabled))
                         .build());
         setting.updateValue(Boolean.toString(enabled));

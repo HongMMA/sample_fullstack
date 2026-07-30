@@ -93,6 +93,15 @@ export type PostWriteSetting = {
   enabled: boolean;
 };
 
+export type GachaServiceSetting = {
+  enabled: boolean;
+};
+
+export type GachaPlayerPoints = {
+  loginId: string;
+  points: number;
+};
+
 export type GachaRarity = "NORMAL" | "MAGIC" | "RARE" | "UNIQUE" | "LEGEND" | "GOAT";
 
 export type GachaCard = {

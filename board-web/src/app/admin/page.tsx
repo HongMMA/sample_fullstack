@@ -4,20 +4,29 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/Header";
 import {
+  ApiError,
+  getAdminGachaPlayerPoints,
   getAdminGachaThemes,
+  getGachaServiceSetting,
   getPostWriteSetting,
+  updateAdminGachaPlayerPoints,
   updateAdminGachaTheme,
+  updateGachaServiceSetting,
   updatePostWriteSetting,
 } from "@/lib/api";
 import { getAccessToken, getLoginId, isSuperAdmin } from "@/lib/auth";
-import type { GachaThemeOption } from "@/lib/types";
+import type { GachaPlayerPoints, GachaThemeOption } from "@/lib/types";
 
 export default function AdminPage() {
   const router = useRouter();
   const [allowed, setAllowed] = useState(false);
   const [enabled, setEnabled] = useState(true);
+  const [gachaEnabled, setGachaEnabled] = useState(false);
   const [themes, setThemes] = useState<GachaThemeOption[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<string>("");
+  const [pointsLoginId, setPointsLoginId] = useState("");
+  const [pointsAmount, setPointsAmount] = useState("10");
+  const [playerPoints, setPlayerPoints] = useState<GachaPlayerPoints | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -36,19 +45,34 @@ export default function AdminPage() {
       return;
     }
 
-    Promise.all([getPostWriteSetting(), getAdminGachaThemes(accessToken)])
-      .then(([setting, themeOptions]) => {
+    Promise.all([
+      getPostWriteSetting(),
+      getGachaServiceSetting(),
+      getAdminGachaThemes(accessToken),
+    ])
+      .then(([setting, gachaSetting, themeOptions]) => {
         setEnabled(setting.enabled);
+        setGachaEnabled(gachaSetting.enabled);
         setThemes(themeOptions);
-        setSelectedTheme(themeOptions.find((item) => item.active)?.themeCode ?? themeOptions[0]?.themeCode ?? "");
+        setSelectedTheme(
+          themeOptions.find((item) => item.active)?.themeCode ?? themeOptions[0]?.themeCode ?? ""
+        );
       })
       .catch(() => setError("설정을 불러오지 못했습니다."));
   }, [router]);
 
-  const toggle = () => {
+  const requireToken = () => {
     const accessToken = getAccessToken();
     if (!accessToken) {
       router.replace("/login?redirect=/admin");
+      return null;
+    }
+    return accessToken;
+  };
+
+  const toggle = () => {
+    const accessToken = requireToken();
+    if (!accessToken) {
       return;
     }
 
@@ -67,13 +91,30 @@ export default function AdminPage() {
     });
   };
 
-  const switchTheme = () => {
-    const accessToken = getAccessToken();
+  const toggleGacha = () => {
+    const accessToken = requireToken();
     if (!accessToken) {
-      router.replace("/login?redirect=/admin");
       return;
     }
-    if (!selectedTheme) {
+
+    setError(null);
+    setMessage(null);
+    const next = !gachaEnabled;
+
+    startTransition(async () => {
+      try {
+        const setting = await updateGachaServiceSetting(next, accessToken);
+        setGachaEnabled(setting.enabled);
+        setMessage(setting.enabled ? "가챠 서비스가 오픈되었습니다." : "가챠 서비스가 종료되었습니다.");
+      } catch {
+        setError("가챠 오픈 상태 변경에 실패했습니다.");
+      }
+    });
+  };
+
+  const switchTheme = () => {
+    const accessToken = requireToken();
+    if (!accessToken || !selectedTheme) {
       return;
     }
 
@@ -106,6 +147,64 @@ export default function AdminPage() {
     });
   };
 
+  const lookupPoints = () => {
+    const accessToken = requireToken();
+    if (!accessToken) {
+      return;
+    }
+    const loginId = pointsLoginId.trim();
+    if (!loginId) {
+      setError("조회할 아이디를 입력하세요.");
+      return;
+    }
+
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      try {
+        const result = await getAdminGachaPlayerPoints(loginId, accessToken);
+        setPlayerPoints(result);
+        setMessage(`${result.loginId} 현재 포인트: ${result.points}`);
+      } catch {
+        setPlayerPoints(null);
+        setError("사용자를 찾지 못했거나 조회에 실패했습니다.");
+      }
+    });
+  };
+
+  const adjustPoints = (sign: 1 | -1) => {
+    const accessToken = requireToken();
+    if (!accessToken) {
+      return;
+    }
+    const loginId = pointsLoginId.trim();
+    const amount = Number(pointsAmount);
+    if (!loginId) {
+      setError("아이디를 입력하세요.");
+      return;
+    }
+    if (!Number.isInteger(amount) || amount <= 0) {
+      setError("포인트는 1 이상의 정수여야 합니다.");
+      return;
+    }
+
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      try {
+        const result = await updateAdminGachaPlayerPoints(loginId, sign * amount, accessToken);
+        setPlayerPoints(result);
+        setMessage(
+          sign > 0
+            ? `${result.loginId}에게 ${amount}포인트 지급 → 현재 ${result.points}`
+            : `${result.loginId}에서 ${amount}포인트 차감 → 현재 ${result.points}`
+        );
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "포인트 변경에 실패했습니다.");
+      }
+    });
+  };
+
   if (!allowed) {
     return (
       <main>
@@ -124,9 +223,7 @@ export default function AdminPage() {
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-white px-5 py-4">
           <div>
             <p className="font-medium text-ink">게시판 글쓰기</p>
-            <p className="mt-1 text-sm text-muted">
-              현재 상태: {enabled ? "활성화" : "비활성화"}
-            </p>
+            <p className="mt-1 text-sm text-muted">현재 상태: {enabled ? "활성화" : "비활성화"}</p>
           </div>
           <button
             type="button"
@@ -138,12 +235,88 @@ export default function AdminPage() {
           </button>
         </div>
 
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-white px-5 py-4">
+          <div>
+            <p className="font-medium text-ink">가챠 서비스 오픈</p>
+            <p className="mt-1 text-sm text-muted">
+              현재 상태: {gachaEnabled ? "오픈 (일반 회원 이용 가능)" : "종료 (superadmin만 이용)"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleGacha}
+            disabled={isPending}
+            className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-60"
+          >
+            {isPending ? "변경 중..." : gachaEnabled ? "가챠 종료" : "가챠 오픈"}
+          </button>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-line bg-white px-5 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="font-medium text-ink">가챠 포인트 관리</p>
+              <p className="mt-1 text-sm text-muted">회원 아이디로 포인트를 조회·지급·차감합니다.</p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <input
+              type="text"
+              value={pointsLoginId}
+              onChange={(event) => setPointsLoginId(event.target.value)}
+              placeholder="회원 아이디"
+              className="min-w-[10rem] flex-1 rounded-full border border-line bg-bg-elevated px-4 py-2.5 text-sm text-ink outline-none focus:border-accent"
+            />
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={pointsAmount}
+              onChange={(event) => setPointsAmount(event.target.value)}
+              placeholder="포인트"
+              className="w-28 rounded-full border border-line bg-bg-elevated px-4 py-2.5 text-sm text-ink outline-none focus:border-accent"
+            />
+            <button
+              type="button"
+              onClick={lookupPoints}
+              disabled={isPending}
+              className="rounded-full border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent disabled:opacity-60"
+            >
+              조회
+            </button>
+            <button
+              type="button"
+              onClick={() => adjustPoints(1)}
+              disabled={isPending}
+              className="rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-60"
+            >
+              지급
+            </button>
+            <button
+              type="button"
+              onClick={() => adjustPoints(-1)}
+              disabled={isPending}
+              className="rounded-full border border-danger/30 bg-danger-soft px-4 py-2.5 text-sm font-medium text-danger transition hover:brightness-105 disabled:opacity-60"
+            >
+              차감
+            </button>
+          </div>
+
+          {playerPoints && (
+            <p className="mt-3 text-sm text-ink">
+              <span className="font-medium">{playerPoints.loginId}</span> · 현재{" "}
+              <span className="text-accent">{playerPoints.points}</span> 포인트
+            </p>
+          )}
+        </div>
+
         <div className="mt-6 rounded-2xl border border-line bg-white px-5 py-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="font-medium text-ink">가챠 테마</p>
               <p className="mt-1 text-sm text-muted">
-                포켓몬 / DKT 등 캐릭터 세트를 교체합니다. 변경 시 인벤토리가 초기화됩니다.
+                포켓몬 / DKT 등 캐릭터 세트를 교체합니다. 보유 카드는 테마별로 유지됩니다.
               </p>
             </div>
             <button
@@ -188,11 +361,6 @@ export default function AdminPage() {
               </label>
             ))}
           </div>
-
-          <p className="mt-4 text-xs text-muted">
-            DKT 캐릭터/이미지는 `board-api/src/main/resources/gacha/dkt-characters.json` 과
-            `board-web/public/gacha/dkt/` 에 추가하면 됩니다. 각 캐릭터는 자동으로 전 등급 카드가 생성됩니다.
-          </p>
         </div>
 
         {message && <p className="mt-4 text-sm text-ink">{message}</p>}

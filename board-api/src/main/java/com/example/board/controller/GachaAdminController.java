@@ -1,9 +1,12 @@
 package com.example.board.controller;
 
+import com.example.board.dto.GachaPlayerPointsResponse;
+import com.example.board.dto.GachaPlayerPointsUpdateRequest;
 import com.example.board.dto.GachaThemeOptionResponse;
 import com.example.board.dto.GachaThemeResponse;
 import com.example.board.dto.GachaThemeUpdateRequest;
 import com.example.board.service.AuthService;
+import com.example.board.service.GachaPlayerAdminService;
 import com.example.board.service.GachaThemeAdminService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -13,6 +16,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -21,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class GachaAdminController {
 
     private final GachaThemeAdminService gachaThemeAdminService;
+    private final GachaPlayerAdminService gachaPlayerAdminService;
     private final AuthService authService;
 
     @GetMapping("/themes")
@@ -38,5 +43,23 @@ public class GachaAdminController {
     ) {
         authService.requireSuperAdmin(authorizationHeader);
         return gachaThemeAdminService.switchTheme(request.themeCode());
+    }
+
+    @GetMapping("/player-points")
+    public GachaPlayerPointsResponse getPlayerPoints(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestParam("loginId") String loginId
+    ) {
+        authService.requireSuperAdmin(authorizationHeader);
+        return gachaPlayerAdminService.getPlayerPoints(loginId);
+    }
+
+    @PutMapping("/player-points")
+    public GachaPlayerPointsResponse adjustPlayerPoints(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @Valid @RequestBody GachaPlayerPointsUpdateRequest request
+    ) {
+        authService.requireSuperAdmin(authorizationHeader);
+        return gachaPlayerAdminService.adjustPlayerPoints(request.loginId(), request.delta());
     }
 }

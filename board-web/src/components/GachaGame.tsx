@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, getGachaProfile, getGachaRanking, getGachaTheme, pullGacha } from "@/lib/api";
-import { getAccessToken } from "@/lib/auth";
+import { getAccessToken, getLoginId, isSuperAdmin } from "@/lib/auth";
 import { getGachaThemeLabel, resolveGachaImageUrl } from "@/lib/gacha-theme";
 import type {
   GachaCard,
@@ -99,6 +99,7 @@ export function GachaGame() {
   const [lastPull, setLastPull] = useState<GachaPullResult | null>(null);
   const [selectedRarity, setSelectedRarity] = useState<GachaRarity | "RANDOM">("RANDOM");
   const [isPending, startTransition] = useTransition();
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const busy = phase !== "idle" || isPending;
 
@@ -174,6 +175,7 @@ export function GachaGame() {
   );
 
   useEffect(() => {
+    setIsAdmin(isSuperAdmin(getLoginId()));
     const accessToken = getAccessToken();
     if (!accessToken) {
       router.replace("/login?redirect=/gacha");
@@ -280,6 +282,7 @@ export function GachaGame() {
             </div>
           </div>
 
+          {isAdmin && (
           <div className="mt-6 rounded-2xl border border-dashed border-line bg-white/60 p-4">
             <p className="text-xs font-medium tracking-wide text-muted uppercase">Admin 등급 지정 뽑기</p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -315,6 +318,7 @@ export function GachaGame() {
               선택: {selectedRarity === "RANDOM" ? "확률 기반 랜덤" : RARITY_STYLE[selectedRarity].label}
             </p>
           </div>
+          )}
 
           <div className="mt-8 flex flex-col items-center gap-6">
             <div
