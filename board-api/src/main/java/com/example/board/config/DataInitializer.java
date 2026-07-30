@@ -2,6 +2,8 @@ package com.example.board.config;
 
 import com.example.board.domain.AppSetting;
 import com.example.board.domain.UserAccount;
+import com.example.board.gacha.theme.GachaThemeRegistry;
+import com.example.board.gacha.theme.PokemonGen1ThemePack;
 import com.example.board.repository.AppSettingRepository;
 import com.example.board.repository.UserAccountRepository;
 import com.example.board.service.AppSettingService;
@@ -17,6 +19,7 @@ public class DataInitializer {
 
     private final UserAccountRepository userAccountRepository;
     private final AppSettingRepository appSettingRepository;
+    private final GachaCatalogSeeder gachaCatalogSeeder;
 
     @Bean
     public CommandLineRunner seedUsers() {
@@ -25,6 +28,9 @@ public class DataInitializer {
             createUserIfMissing("player2", "1234");
             ensureSuperAdmin(AuthService.SUPERADMIN_LOGIN_ID, "superadmin");
             createSettingIfMissing(AppSettingService.POST_WRITE_ENABLED_KEY, "true");
+            // Change this value (and register a new GachaThemePack) to switch character types.
+            createSettingIfMissing(GachaThemeRegistry.ACTIVE_THEME_SETTING_KEY, PokemonGen1ThemePack.THEME_CODE);
+            gachaCatalogSeeder.seedIfNeeded();
         };
     }
 

@@ -3,6 +3,12 @@ import type {
   Comment,
   CommentCreateInput,
   CommentUpdateInput,
+  GachaProfile,
+  GachaPullResult,
+  GachaRankingEntry,
+  GachaRarity,
+  GachaTheme,
+  GachaThemeOption,
   GameScore,
   GameScoreCreateInput,
   LoginInput,
@@ -192,4 +198,36 @@ export function updatePostWriteSetting(enabled: boolean, accessToken: string) {
     body: JSON.stringify({ enabled }),
     accessToken,
   });
+}
+
+export function getGachaProfile(accessToken: string) {
+  return request<GachaProfile>("/api/gacha/me", { accessToken });
+}
+
+export function getGachaTheme(accessToken: string) {
+  return request<GachaTheme>("/api/gacha/theme", { accessToken });
+}
+
+export function getAdminGachaThemes(accessToken: string) {
+  return request<GachaThemeOption[]>("/api/admin/gacha/themes", { accessToken });
+}
+
+export function updateAdminGachaTheme(themeCode: string, accessToken: string) {
+  return request<GachaTheme>("/api/admin/gacha/theme", {
+    method: "PUT",
+    body: JSON.stringify({ themeCode }),
+    accessToken,
+  });
+}
+
+export function pullGacha(accessToken: string, rarity?: GachaRarity | null) {
+  return request<GachaPullResult>("/api/gacha/pull", {
+    method: "POST",
+    body: JSON.stringify(rarity ? { rarity } : {}),
+    accessToken,
+  });
+}
+
+export function getGachaRanking(accessToken: string) {
+  return request<GachaRankingEntry[]>("/api/gacha/ranking", { accessToken });
 }

@@ -92,3 +92,44 @@ export type Me = {
 export type PostWriteSetting = {
   enabled: boolean;
 };
+
+export type GachaRarity = "NORMAL" | "MAGIC" | "RARE" | "UNIQUE" | "LEGEND" | "GOAT";
+
+export type GachaCard = {
+  id: number;
+  code: string;
+  name: string;
+  themeCode: string;
+  artKey: string;
+  imageUrl: string | null;
+  rarity: GachaRarity;
+  rarityLabel: string;
+  serialNo: number;
+  quantity: number;
+};
+
+export type GachaProfile = {
+  loginId: string;
+  points: number;
+  cards: GachaCard[];
+  rarityCounts: Record<string, number>;
+};
+
+export type GachaPullResult = {
+  pulledCard: GachaCard;
+  remainingPoints: number;
+  duplicate: boolean;
+};
+
+export type GachaTheme = {
+  themeCode: string;
+  displayName: string;
+  cardCount: number;
+};
+
+export type GachaThemeOption = {
+  themeCode: string;
+  displayName: string;
+  cardCount: number;
+  active: boolean;
+};

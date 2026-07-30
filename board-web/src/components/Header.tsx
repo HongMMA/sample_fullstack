@@ -42,6 +42,14 @@ export function Header({ actionHref = "/board/new", actionLabel = "글쓰기" }:
             관리
           </Link>
         )}
+        {isSuperAdmin(loginId) && (
+          <Link
+            href="/gacha"
+            className="inline-flex items-center rounded-full border border-line bg-white px-5 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent"
+          >
+            가챠
+          </Link>
+        )}
         <Link
           href="/login"
           className="inline-flex items-center rounded-full border border-line bg-white px-5 py-2.5 text-sm font-medium text-ink transition hover:border-accent hover:text-accent"
