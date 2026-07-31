@@ -15,6 +15,7 @@ public class WebConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
                         .allowedOriginPatterns(
+                                "http://localhost:3000",
                                 "http://localhost:3001",
                                 "https://board-web-green.vercel.app",
                                 "https://*.vercel.app"

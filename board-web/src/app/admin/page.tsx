@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/Header";
 import {
   ApiError,
+  getAdminGachaCharacters,
   getAdminGachaPlayerPoints,
   getAdminGachaThemes,
   getGachaServiceSetting,
@@ -13,9 +14,11 @@ import {
   updateAdminGachaTheme,
   updateGachaServiceSetting,
   updatePostWriteSetting,
+  uploadAdminGachaCharacter,
 } from "@/lib/api";
 import { getAccessToken, getLoginId, isSuperAdmin } from "@/lib/auth";
-import type { GachaPlayerPoints, GachaThemeOption } from "@/lib/types";
+import { resolveGachaMediaUrl } from "@/lib/gacha-theme";
+import type { GachaCharacter, GachaPlayerPoints, GachaThemeOption } from "@/lib/types";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -27,6 +30,9 @@ export default function AdminPage() {
   const [pointsLoginId, setPointsLoginId] = useState("");
   const [pointsAmount, setPointsAmount] = useState("10");
   const [playerPoints, setPlayerPoints] = useState<GachaPlayerPoints | null>(null);
+  const [characters, setCharacters] = useState<GachaCharacter[]>([]);
+  const [characterName, setCharacterName] = useState("");
+  const [characterImage, setCharacterImage] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -49,14 +55,16 @@ export default function AdminPage() {
       getPostWriteSetting(),
       getGachaServiceSetting(),
       getAdminGachaThemes(accessToken),
+      getAdminGachaCharacters(accessToken),
     ])
-      .then(([setting, gachaSetting, themeOptions]) => {
+      .then(([setting, gachaSetting, themeOptions, characterList]) => {
         setEnabled(setting.enabled);
         setGachaEnabled(gachaSetting.enabled);
         setThemes(themeOptions);
         setSelectedTheme(
           themeOptions.find((item) => item.active)?.themeCode ?? themeOptions[0]?.themeCode ?? ""
         );
+        setCharacters(characterList);
       })
       .catch(() => setError("설정을 불러오지 못했습니다."));
   }, [router]);
@@ -201,6 +209,43 @@ export default function AdminPage() {
         );
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "포인트 변경에 실패했습니다.");
+      }
+    });
+  };
+
+  const uploadCharacter = () => {
+    const accessToken = requireToken();
+    if (!accessToken) {
+      return;
+    }
+    const name = characterName.trim();
+    if (!name) {
+      setError("캐릭터 이름을 입력하세요.");
+      return;
+    }
+    if (!characterImage) {
+      setError("캐릭터 이미지를 선택하세요.");
+      return;
+    }
+
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      try {
+        const created = await uploadAdminGachaCharacter(name, characterImage, accessToken);
+        const [nextCharacters, nextThemes] = await Promise.all([
+          getAdminGachaCharacters(accessToken),
+          getAdminGachaThemes(accessToken),
+        ]);
+        setCharacters(nextCharacters);
+        setThemes(nextThemes);
+        setCharacterName("");
+        setCharacterImage(null);
+        setMessage(
+          `DKT 캐릭터 '${created.name}' 등록 완료 (희귀도 6종 자동 생성, serial ${created.serialNo})`
+        );
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "캐릭터 업로드에 실패했습니다.");
       }
     });
   };
@@ -360,6 +405,71 @@ export default function AdminPage() {
                 </div>
               </label>
             ))}
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-line bg-white px-5 py-4">
+          <div>
+            <p className="font-medium text-ink">DKT 캐릭터 등록</p>
+            <p className="mt-1 text-sm text-muted">
+              이름과 이미지를 올리면 희귀도 6종 카드가 자동 생성됩니다. 이미지는 API에 저장됩니다.
+            </p>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <input
+              type="text"
+              value={characterName}
+              onChange={(event) => setCharacterName(event.target.value)}
+              placeholder="캐릭터 이름"
+              maxLength={40}
+              className="min-w-[10rem] flex-1 rounded-full border border-line bg-bg-elevated px-4 py-2.5 text-sm text-ink outline-none focus:border-accent"
+            />
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(event) => setCharacterImage(event.target.files?.[0] ?? null)}
+              className="min-w-[12rem] flex-1 rounded-full border border-line bg-bg-elevated px-4 py-2 text-sm text-ink file:mr-3 file:rounded-full file:border-0 file:bg-accent-soft file:px-3 file:py-1 file:text-xs file:text-accent"
+            />
+            <button
+              type="button"
+              onClick={uploadCharacter}
+              disabled={isPending}
+              className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-60"
+            >
+              {isPending ? "등록 중..." : "캐릭터 등록"}
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {characters.map((character) => {
+              const imageSrc = resolveGachaMediaUrl(character.imageUrl);
+              return (
+                <div
+                  key={character.id}
+                  className="flex items-center gap-3 rounded-2xl border border-line bg-bg-elevated/50 px-3 py-3"
+                >
+                  {imageSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imageSrc}
+                      alt={character.name}
+                      className="h-14 w-14 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-xs text-muted">
+                      N/A
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-ink">{character.name}</p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      #{character.serialNo} · {character.artKey} · {character.source}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

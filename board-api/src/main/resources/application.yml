@@ -23,6 +23,14 @@ spring:
       hibernate:
         format_sql: true
     show-sql: true
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
+
+app:
+  gacha:
+    media-dir: uploads/gacha
 
 springdoc:
   api-docs:

@@ -1,32 +1,26 @@
 package com.example.board.gacha.theme;
 
+import com.example.board.domain.GachaCharacter;
 import com.example.board.domain.GachaRarity;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.io.InputStream;
+import com.example.board.repository.GachaCharacterRepository;
 import java.util.ArrayList;
 import java.util.List;
-import org.springframework.core.io.ClassPathResource;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
  * DKT theme pack.
- * Characters are loaded from {@code classpath:gacha/dkt-characters.json}.
- * Images are expected at the web app path {@code /gacha/dkt/{artKey}.png}
- * (place files under {@code board-web/public/gacha/dkt/}).
- * Each character is generated for every rarity automatically.
+ * Characters live in {@code gacha_characters} (seeded from classpath JSON, then admin uploads).
+ * Seed images: {@code /gacha/dkt/{artKey}.png} (board-web/public).
+ * Uploaded images: {@code /api/gacha/media/dkt/{fileName}} (API disk storage).
  */
 @Component
+@RequiredArgsConstructor
 public class DktThemePack implements GachaThemePack {
 
     public static final String THEME_CODE = "dkt";
 
-    private final List<CharacterSeed> characters;
-
-    public DktThemePack(ObjectMapper objectMapper) {
-        this.characters = loadCharacters(objectMapper);
-    }
+    private final GachaCharacterRepository gachaCharacterRepository;
 
     @Override
     public String themeCode() {
@@ -40,15 +34,17 @@ public class DktThemePack implements GachaThemePack {
 
     @Override
     public List<CardDefinition> definitions() {
+        List<GachaCharacter> characters =
+                gachaCharacterRepository.findByThemeCodeOrderBySerialNoAsc(THEME_CODE);
         List<CardDefinition> list = new ArrayList<>(characters.size() * GachaRarity.values().length);
         for (GachaRarity rarity : GachaRarity.values()) {
-            for (CharacterSeed character : characters) {
+            for (GachaCharacter character : characters) {
                 list.add(new CardDefinition(
-                        "DKT-" + String.format("%03d", character.serialNo()) + "-" + rarity.name(),
-                        character.name(),
-                        character.artKey(),
+                        "DKT-" + String.format("%03d", character.getSerialNo()) + "-" + rarity.name(),
+                        character.getName(),
+                        character.getArtKey(),
                         rarity,
-                        character.serialNo()
+                        character.getSerialNo()
                 ));
             }
         }
@@ -60,22 +56,13 @@ public class DktThemePack implements GachaThemePack {
         if (artKey == null || artKey.isBlank()) {
             return null;
         }
-        return "/gacha/dkt/" + artKey + ".png";
-    }
-
-    private List<CharacterSeed> loadCharacters(ObjectMapper objectMapper) {
-        try (InputStream inputStream = new ClassPathResource("gacha/dkt-characters.json").getInputStream()) {
-            List<CharacterSeed> loaded = objectMapper.readValue(inputStream, new TypeReference<>() {
-            });
-            if (loaded == null || loaded.isEmpty()) {
-                throw new IllegalStateException("dkt-characters.json is empty");
-            }
-            return List.copyOf(loaded);
-        } catch (IOException ex) {
-            throw new IllegalStateException("Failed to load dkt-characters.json", ex);
-        }
-    }
-
-    public record CharacterSeed(int serialNo, String name, String artKey) {
+        return gachaCharacterRepository.findByThemeCodeAndArtKey(THEME_CODE, artKey)
+                .map(character -> {
+                    if (character.isUploaded() && character.getStoredFileName() != null) {
+                        return "/api/gacha/media/" + THEME_CODE + "/" + character.getStoredFileName();
+                    }
+                    return "/gacha/dkt/" + character.getArtKey() + ".png";
+                })
+                .orElse("/gacha/dkt/" + artKey + ".png");
     }
 }

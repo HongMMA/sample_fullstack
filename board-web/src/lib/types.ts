@@ -156,3 +156,13 @@ export type GachaThemeOption = {
   cardCount: number;
   active: boolean;
 };
+
+export type GachaCharacter = {
+  id: number;
+  themeCode: string;
+  serialNo: number;
+  name: string;
+  artKey: string;
+  source: "SEED" | "UPLOAD";
+  imageUrl: string | null;
+};

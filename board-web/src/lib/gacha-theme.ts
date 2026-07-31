@@ -1,5 +1,7 @@
 import type { GachaCard } from "@/lib/types";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+
 export type GachaThemeAdapter = {
   themeCode: string;
   displayName: string;
@@ -26,15 +28,30 @@ export const GACHA_THEME_ADAPTERS: Record<string, GachaThemeAdapter> = {
   },
 };
 
+function withApiOrigin(url: string) {
+  if (url.startsWith("/api/")) {
+    return `${API_URL}${url}`;
+  }
+  return url;
+}
+
 export function resolveGachaImageUrl(card: Pick<GachaCard, "themeCode" | "artKey" | "imageUrl">) {
   if (card.imageUrl) {
-    return card.imageUrl;
+    return withApiOrigin(card.imageUrl);
   }
   const adapter = GACHA_THEME_ADAPTERS[card.themeCode];
   if (!adapter) {
     return null;
   }
-  return adapter.resolveImageUrl(card.artKey);
+  const resolved = adapter.resolveImageUrl(card.artKey);
+  return resolved ? withApiOrigin(resolved) : null;
+}
+
+export function resolveGachaMediaUrl(imageUrl: string | null | undefined) {
+  if (!imageUrl) {
+    return null;
+  }
+  return withApiOrigin(imageUrl);
 }
 
 export function getGachaThemeLabel(themeCode: string | null | undefined, fallback?: string) {

@@ -3,6 +3,7 @@ import type {
   Comment,
   CommentCreateInput,
   CommentUpdateInput,
+  GachaCharacter,
   GachaProfile,
   GachaPullResult,
   GachaRankingEntry,
@@ -42,16 +43,21 @@ type RequestOptions = RequestInit & {
 };
 
 async function request<T>(path: string, init?: RequestOptions): Promise<T> {
+  const headers: HeadersInit = {
+    "ngrok-skip-browser-warning": "true",
+    ...(init?.accessToken ? { Authorization: `Bearer ${init.accessToken}` } : {}),
+    ...(init?.headers ?? {}),
+  };
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
+  if (!isFormData && !(headers as Record<string, string>)["Content-Type"]) {
+    (headers as Record<string, string>)["Content-Type"] = "application/json";
+  }
+
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      "ngrok-skip-browser-warning": "true",
-      ...(init?.accessToken ? { Authorization: `Bearer ${init.accessToken}` } : {}),
-      ...(init?.headers ?? {}),
-    },
+    headers,
     cache: "no-store",
-    signal: init?.signal ?? AbortSignal.timeout(5000),
+    signal: init?.signal ?? AbortSignal.timeout(isFormData ? 30000 : 5000),
   });
 
   if (response.status === 204) {
@@ -249,6 +255,30 @@ export function updateAdminGachaPlayerPoints(
   return request<GachaPlayerPoints>("/api/admin/gacha/player-points", {
     method: "PUT",
     body: JSON.stringify({ loginId, delta }),
+    accessToken,
+  });
+}
+
+export function getAdminGachaCharacters(accessToken: string, themeCode = "dkt") {
+  return request<GachaCharacter[]>(
+    `/api/admin/gacha/characters?themeCode=${encodeURIComponent(themeCode)}`,
+    { accessToken }
+  );
+}
+
+export function uploadAdminGachaCharacter(
+  name: string,
+  image: File,
+  accessToken: string,
+  themeCode = "dkt"
+) {
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("image", image);
+  formData.append("themeCode", themeCode);
+  return request<GachaCharacter>("/api/admin/gacha/characters", {
+    method: "POST",
+    body: formData,
     accessToken,
   });
 }

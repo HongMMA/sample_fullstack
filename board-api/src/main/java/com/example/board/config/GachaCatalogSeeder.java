@@ -12,6 +12,7 @@ import com.example.board.repository.GachaInventoryRepository;
 import com.example.board.repository.GachaPlayerRepository;
 import com.example.board.repository.UserAccountRepository;
 import com.example.board.service.AuthService;
+import com.example.board.service.GachaCharacterAdminService;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,9 +33,11 @@ public class GachaCatalogSeeder {
     private final GachaPlayerRepository gachaPlayerRepository;
     private final GachaInventoryRepository gachaInventoryRepository;
     private final GachaThemeRegistry gachaThemeRegistry;
+    private final ObjectProvider<GachaCharacterAdminService> gachaCharacterAdminService;
 
     @Transactional
     public void seedIfNeeded() {
+        gachaCharacterAdminService.getObject().syncDktSeedCharacters();
         for (GachaThemePack pack : gachaThemeRegistry.allPacks()) {
             ensureThemeCatalog(pack);
         }
@@ -51,14 +55,11 @@ public class GachaCatalogSeeder {
     /**
      * Upserts missing cards for a theme. Never deletes inventory or existing cards.
      */
-    private void ensureThemeCatalog(GachaThemePack pack) {
+    @Transactional
+    public void ensureThemeCatalog(GachaThemePack pack) {
         Set<String> existingCodes = gachaCardRepository.findByThemeCode(pack.themeCode()).stream()
                 .map(GachaCard::getCode)
                 .collect(Collectors.toCollection(HashSet::new));
-
-        if (existingCodes.size() >= pack.expectedCardCount()) {
-            return;
-        }
 
         List<GachaCard> batch = new ArrayList<>();
         for (GachaThemePack.CardDefinition definition : pack.definitions()) {
