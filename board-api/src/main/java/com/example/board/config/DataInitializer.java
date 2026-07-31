@@ -29,6 +29,7 @@ public class DataInitializer {
             ensureSuperAdmin(AuthService.SUPERADMIN_LOGIN_ID, "superadmin");
             createSettingIfMissing(AppSettingService.POST_WRITE_ENABLED_KEY, "true");
             createSettingIfMissing(AppSettingService.GACHA_ENABLED_KEY, "false");
+            createSettingIfMissing(AppSettingService.GACHA_CHARACTER_UPLOAD_ENABLED_KEY, "false");
             // Change this value (and register a new GachaThemePack) to switch character types.
             createSettingIfMissing(GachaThemeRegistry.ACTIVE_THEME_SETTING_KEY, PokemonGen1ThemePack.THEME_CODE);
             gachaCatalogSeeder.seedIfNeeded();

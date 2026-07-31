@@ -48,4 +48,18 @@ public class AdminSettingController {
         authService.requireSuperAdmin(authorizationHeader);
         return appSettingService.updateGachaSetting(request.enabled());
     }
+
+    @GetMapping("/gacha-character-upload")
+    public PostWriteSettingResponse getGachaCharacterUploadSetting() {
+        return appSettingService.getGachaCharacterUploadSetting();
+    }
+
+    @PutMapping("/gacha-character-upload")
+    public PostWriteSettingResponse updateGachaCharacterUploadSetting(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @Valid @RequestBody PostWriteSettingUpdateRequest request
+    ) {
+        authService.requireSuperAdmin(authorizationHeader);
+        return appSettingService.updateGachaCharacterUploadSetting(request.enabled());
+    }
 }

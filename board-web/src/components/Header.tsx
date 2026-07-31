@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getGachaServiceSetting, getPostWriteSetting } from "@/lib/api";
+import { getGachaCharacterUploadSetting, getGachaServiceSetting, getPostWriteSetting } from "@/lib/api";
 import { getLoginId, isGuestLoginId, isSuperAdmin } from "@/lib/auth";
 
 type HeaderProps = {
@@ -14,6 +14,7 @@ export function Header({ actionHref = "/board/new", actionLabel = "글쓰기" }:
   const [loginId, setLoginId] = useState<string | null>(null);
   const [postWriteEnabled, setPostWriteEnabled] = useState(true);
   const [gachaEnabled, setGachaEnabled] = useState(false);
+  const [characterUploadEnabled, setCharacterUploadEnabled] = useState(false);
   const isWriteAction = actionHref === "/board/new" && actionLabel === "글쓰기";
 
   useEffect(() => {
@@ -21,14 +22,23 @@ export function Header({ actionHref = "/board/new", actionLabel = "글쓰기" }:
     getPostWriteSetting()
       .then((setting) => setPostWriteEnabled(setting.enabled))
       .catch(() => setPostWriteEnabled(true));
-    getGachaServiceSetting()
-      .then((setting) => setGachaEnabled(setting.enabled))
-      .catch(() => setGachaEnabled(false));
+    Promise.all([getGachaServiceSetting(), getGachaCharacterUploadSetting()])
+      .then(([gachaSetting, uploadSetting]) => {
+        setGachaEnabled(gachaSetting.enabled);
+        setCharacterUploadEnabled(uploadSetting.enabled);
+      })
+      .catch(() => {
+        setGachaEnabled(false);
+        setCharacterUploadEnabled(false);
+      });
   }, []);
 
   const isGuest = isGuestLoginId(loginId);
   const canWrite = !isGuest && (postWriteEnabled || isSuperAdmin(loginId));
-  const canSeeGacha = Boolean(loginId) && !isGuest && (gachaEnabled || isSuperAdmin(loginId));
+  const canSeeGacha =
+    Boolean(loginId) &&
+    !isGuest &&
+    (gachaEnabled || characterUploadEnabled || isSuperAdmin(loginId));
 
   return (
     <header className="mb-10 flex items-end justify-between gap-6 border-b border-line pb-6">

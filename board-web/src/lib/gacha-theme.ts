@@ -29,6 +29,12 @@ export const GACHA_THEME_ADAPTERS: Record<string, GachaThemeAdapter> = {
 };
 
 function withApiOrigin(url: string) {
+  // Uploaded media must go through same-origin Next proxy.
+  // Direct ngrok <img> requests get an HTML interstitial (broken image).
+  const mediaMatch = url.match(/^\/api\/gacha\/media\/([^/]+)\/([^/?#]+)$/);
+  if (mediaMatch) {
+    return `/api/gacha-media/${mediaMatch[1]}/${mediaMatch[2]}`;
+  }
   if (url.startsWith("/api/")) {
     return `${API_URL}${url}`;
   }

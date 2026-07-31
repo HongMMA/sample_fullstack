@@ -220,6 +220,22 @@ export function updateGachaServiceSetting(enabled: boolean, accessToken: string)
   });
 }
 
+export function getGachaCharacterUploadSetting() {
+  return request<GachaServiceSetting>("/api/admin/settings/gacha-character-upload");
+}
+
+export function updateGachaCharacterUploadSetting(enabled: boolean, accessToken: string) {
+  return request<GachaServiceSetting>("/api/admin/settings/gacha-character-upload", {
+    method: "PUT",
+    body: JSON.stringify({ enabled }),
+    accessToken,
+  });
+}
+
+export function getMemberGachaCharacterUploadSetting() {
+  return request<GachaServiceSetting>("/api/gacha/character-upload-enabled");
+}
+
 export function getGachaProfile(accessToken: string) {
   return request<GachaProfile>("/api/gacha/me", { accessToken });
 }
@@ -277,6 +293,30 @@ export function uploadAdminGachaCharacter(
   formData.append("image", image);
   formData.append("themeCode", themeCode);
   return request<GachaCharacter>("/api/admin/gacha/characters", {
+    method: "POST",
+    body: formData,
+    accessToken,
+  });
+}
+
+export function getGachaCharacters(accessToken: string, themeCode = "dkt") {
+  return request<GachaCharacter[]>(
+    `/api/gacha/characters?themeCode=${encodeURIComponent(themeCode)}`,
+    { accessToken }
+  );
+}
+
+export function uploadGachaCharacter(
+  name: string,
+  image: File,
+  accessToken: string,
+  themeCode = "dkt"
+) {
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("image", image);
+  formData.append("themeCode", themeCode);
+  return request<GachaCharacter>("/api/gacha/characters", {
     method: "POST",
     body: formData,
     accessToken,

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GachaGame } from "@/components/GachaGame";
-import { getGachaServiceSetting } from "@/lib/api";
+import { getGachaCharacterUploadSetting, getGachaServiceSetting } from "@/lib/api";
 import { getAccessToken, getLoginId, isGuestLoginId, isSuperAdmin } from "@/lib/auth";
 
 export default function GachaPage() {
@@ -29,9 +29,9 @@ export default function GachaPage() {
       return;
     }
 
-    getGachaServiceSetting()
-      .then((setting) => {
-        if (!setting.enabled) {
+    Promise.all([getGachaServiceSetting(), getGachaCharacterUploadSetting()])
+      .then(([gachaSetting, uploadSetting]) => {
+        if (!gachaSetting.enabled && !uploadSetting.enabled) {
           setClosedMessage("가챠 서비스가 아직 오픈되지 않았습니다.");
           return;
         }

@@ -14,6 +14,7 @@ public class AppSettingService {
 
     public static final String POST_WRITE_ENABLED_KEY = "POST_WRITE_ENABLED";
     public static final String GACHA_ENABLED_KEY = "GACHA_ENABLED";
+    public static final String GACHA_CHARACTER_UPLOAD_ENABLED_KEY = "GACHA_CHARACTER_UPLOAD_ENABLED";
 
     private final AppSettingRepository appSettingRepository;
 
@@ -29,12 +30,22 @@ public class AppSettingService {
                 .orElse(false);
     }
 
+    public boolean isGachaCharacterUploadEnabled() {
+        return appSettingRepository.findBySettingKey(GACHA_CHARACTER_UPLOAD_ENABLED_KEY)
+                .map(setting -> Boolean.parseBoolean(setting.getSettingValue()))
+                .orElse(false);
+    }
+
     public PostWriteSettingResponse getPostWriteSetting() {
         return new PostWriteSettingResponse(isPostWriteEnabled());
     }
 
     public PostWriteSettingResponse getGachaSetting() {
         return new PostWriteSettingResponse(isGachaEnabled());
+    }
+
+    public PostWriteSettingResponse getGachaCharacterUploadSetting() {
+        return new PostWriteSettingResponse(isGachaCharacterUploadEnabled());
     }
 
     @Transactional
@@ -45,6 +56,11 @@ public class AppSettingService {
     @Transactional
     public PostWriteSettingResponse updateGachaSetting(boolean enabled) {
         return upsertBooleanSetting(GACHA_ENABLED_KEY, enabled);
+    }
+
+    @Transactional
+    public PostWriteSettingResponse updateGachaCharacterUploadSetting(boolean enabled) {
+        return upsertBooleanSetting(GACHA_CHARACTER_UPLOAD_ENABLED_KEY, enabled);
     }
 
     private PostWriteSettingResponse upsertBooleanSetting(String key, boolean enabled) {

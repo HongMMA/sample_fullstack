@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError, getGachaProfile, getGachaRanking, getGachaTheme, pullGacha } from "@/lib/api";
+import { ApiError, getGachaProfile, getGachaRanking, getGachaTheme, getMemberGachaCharacterUploadSetting, pullGacha } from "@/lib/api";
 import { getAccessToken, getLoginId, isSuperAdmin } from "@/lib/auth";
 import { getGachaThemeLabel, resolveGachaImageUrl } from "@/lib/gacha-theme";
+import { GachaCharacterUploadPanel } from "@/components/GachaCharacterUploadPanel";
 import type {
   GachaCard,
   GachaProfile,
@@ -101,6 +102,7 @@ export function GachaGame() {
   const [selectedRarity, setSelectedRarity] = useState<GachaRarity | "RANDOM">("RANDOM");
   const [isPending, startTransition] = useTransition();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [characterUploadEnabled, setCharacterUploadEnabled] = useState(false);
 
   const busy = phase !== "idle" || isPending;
 
@@ -188,11 +190,13 @@ export function GachaGame() {
       getGachaProfile(accessToken),
       getGachaRanking(accessToken),
       getGachaTheme(accessToken),
+      getMemberGachaCharacterUploadSetting(),
     ])
-      .then(([nextProfile, nextRanking, nextTheme]) => {
+      .then(([nextProfile, nextRanking, nextTheme, uploadSetting]) => {
         setProfile(nextProfile);
         setRanking(nextRanking);
         setTheme(nextTheme);
+        setCharacterUploadEnabled(uploadSetting.enabled);
       })
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
@@ -272,6 +276,8 @@ export function GachaGame() {
 
   return (
     <div className="space-y-10">
+      <GachaCharacterUploadPanel enabled={characterUploadEnabled} />
+
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-3xl border border-line bg-bg-elevated p-6 shadow-[var(--shadow)] md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">

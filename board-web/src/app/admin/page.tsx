@@ -8,10 +8,12 @@ import {
   getAdminGachaCharacters,
   getAdminGachaPlayerPoints,
   getAdminGachaThemes,
+  getGachaCharacterUploadSetting,
   getGachaServiceSetting,
   getPostWriteSetting,
   updateAdminGachaPlayerPoints,
   updateAdminGachaTheme,
+  updateGachaCharacterUploadSetting,
   updateGachaServiceSetting,
   updatePostWriteSetting,
   uploadAdminGachaCharacter,
@@ -25,6 +27,7 @@ export default function AdminPage() {
   const [allowed, setAllowed] = useState(false);
   const [enabled, setEnabled] = useState(true);
   const [gachaEnabled, setGachaEnabled] = useState(false);
+  const [characterUploadEnabled, setCharacterUploadEnabled] = useState(false);
   const [themes, setThemes] = useState<GachaThemeOption[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<string>("");
   const [pointsLoginId, setPointsLoginId] = useState("");
@@ -54,12 +57,14 @@ export default function AdminPage() {
     Promise.all([
       getPostWriteSetting(),
       getGachaServiceSetting(),
+      getGachaCharacterUploadSetting(),
       getAdminGachaThemes(accessToken),
       getAdminGachaCharacters(accessToken),
     ])
-      .then(([setting, gachaSetting, themeOptions, characterList]) => {
+      .then(([setting, gachaSetting, uploadSetting, themeOptions, characterList]) => {
         setEnabled(setting.enabled);
         setGachaEnabled(gachaSetting.enabled);
+        setCharacterUploadEnabled(uploadSetting.enabled);
         setThemes(themeOptions);
         setSelectedTheme(
           themeOptions.find((item) => item.active)?.themeCode ?? themeOptions[0]?.themeCode ?? ""
@@ -116,6 +121,31 @@ export default function AdminPage() {
         setMessage(setting.enabled ? "가챠 서비스가 오픈되었습니다." : "가챠 서비스가 종료되었습니다.");
       } catch {
         setError("가챠 오픈 상태 변경에 실패했습니다.");
+      }
+    });
+  };
+
+  const toggleCharacterUpload = () => {
+    const accessToken = requireToken();
+    if (!accessToken) {
+      return;
+    }
+
+    setError(null);
+    setMessage(null);
+    const next = !characterUploadEnabled;
+
+    startTransition(async () => {
+      try {
+        const setting = await updateGachaCharacterUploadSetting(next, accessToken);
+        setCharacterUploadEnabled(setting.enabled);
+        setMessage(
+          setting.enabled
+            ? "일반 회원 캐릭터 업로드가 오픈되었습니다."
+            : "일반 회원 캐릭터 업로드가 종료되었습니다."
+        );
+      } catch {
+        setError("캐릭터 업로드 오픈 상태 변경에 실패했습니다.");
       }
     });
   };
@@ -294,6 +324,30 @@ export default function AdminPage() {
             className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-60"
           >
             {isPending ? "변경 중..." : gachaEnabled ? "가챠 종료" : "가챠 오픈"}
+          </button>
+        </div>
+
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-white px-5 py-4">
+          <div>
+            <p className="font-medium text-ink">DKT 캐릭터 업로드 오픈</p>
+            <p className="mt-1 text-sm text-muted">
+              현재 상태:{" "}
+              {characterUploadEnabled
+                ? "오픈 (일반 회원도 가챠 페이지에서 업로드 가능)"
+                : "종료 (관리자만 업로드)"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleCharacterUpload}
+            disabled={isPending}
+            className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-60"
+          >
+            {isPending
+              ? "변경 중..."
+              : characterUploadEnabled
+                ? "회원 업로드 종료"
+                : "회원 업로드 오픈"}
           </button>
         </div>
 
